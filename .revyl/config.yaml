@@ -15,7 +15,7 @@ build:
       ios:
         app_id: ecced7bf-9a43-4a8b-9a26-c072fa7bad74
         build_commands:
-          - ./scripts/build-ios.sh
+          - bash scripts/build-ios.sh
         output_path: build/Build/Products/Debug-iphonesimulator/EatsClone.app
         timeout_seconds: 1800
 pr_review:
