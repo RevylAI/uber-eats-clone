@@ -1,0 +1,15 @@
+name: iOS
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate project and test offline flows
+        run: bash scripts/verify-ios.sh

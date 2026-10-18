@@ -1,0 +1,7 @@
+build
+DerivedData
+*.xcresult
+docs
+.git
+.build
+.swiftpm
