@@ -34,6 +34,10 @@ Restaurant data, prices, fees, delivery estimates, payment labels, promotions, a
 
 For a fresh local demo, pass `--reset-demo` in the scheme's Run arguments or reinstall the app. Resetting removes the local demo snapshot; it does not affect any external account.
 
+## Revyl pull-request verification
+
+The repository includes a published Revyl project configuration for automatic iOS preview builds and Proof of Changes. Its `pull-request` profile runs `scripts/build-ios.sh`; no GitHub Actions API key is required for Revyl-managed builds. See [Revyl setup and test-only sign-in](docs/REVYL.md) for session preparation, security boundaries, and verification commands. Configuration being enabled is not evidence that an individual proof passed; check that pull request's Revyl report.
+
 ## License and media
 
 Source code is open source under the [MIT License](LICENSE). The bundled food photographs are separate third-party works covered by the [Unsplash License](https://unsplash.com/license), **not MIT**. [Photo sources and licensing](docs/PHOTOGRAPHY.md) lists every bundled image and its source URL.

@@ -12,6 +12,8 @@ final class AppStore: ObservableObject {
     @Published var selectedTab = 0
     @Published var showCart = false
     @Published var activeOrderID: UUID?
+    @Published private(set) var revylSessionMessage: String?
+    @Published private(set) var navigationResetID = UUID()
     let restaurants = Catalog.restaurants
     private let defaults: UserDefaults
     private let key = "eats.local.snapshot.v1"
@@ -117,6 +119,25 @@ final class AppStore: ObservableObject {
         speed = .standard
         tip = 200
         promo = ""
+        revylSessionMessage = nil
+    }
+
+    func handleRevylAuthBypass(_ url: URL, environment: [String: String] = ProcessInfo.processInfo.environment, arguments: [String] = ProcessInfo.processInfo.arguments) {
+        #if DEBUG
+        switch RevylAuthBypass.validate(url, environment: environment, arguments: arguments, isTestBuild: true) {
+        case .ignored:
+            return
+        case .rejected(let reason):
+            revylSessionMessage = "Revyl sign-in rejected: \(reason)"
+        case .accepted(let tab):
+            snapshot.onboarded = true
+            selectedTab = tab
+            showCart = false
+            activeOrderID = nil
+            navigationResetID = UUID()
+            revylSessionMessage = "Revyl sign-in accepted · Local buyer"
+        }
+        #endif
     }
 
     private func persist() {

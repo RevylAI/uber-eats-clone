@@ -1,0 +1,37 @@
+project:
+  id: a882d616-7092-471d-a524-0019bb41385e
+session:
+  idle_timeout_seconds: 1800
+  before_script:
+    script_path: ./scripts/prepare-revyl-session.py
+    timeout_seconds: 30
+  auth_bypass:
+    launch_vars: [EATSCLONE_AUTH_BYPASS_ENABLED, EATSCLONE_AUTH_BYPASS_TOKEN]
+    deep_link: "eatsclone://revyl-auth?token=${EATSCLONE_AUTH_BYPASS_TOKEN}&role=buyer&redirect=/home"
+build:
+  framework: ios
+  profiles:
+    pull-request:
+      ios:
+        app_id: ecced7bf-9a43-4a8b-9a26-c072fa7bad74
+        build_commands:
+          - ./scripts/build-ios.sh
+        output_path: build/Build/Products/Debug-iphonesimulator/EatsClone.app
+        timeout_seconds: 1800
+pr_review:
+  enabled: true
+  review_triggers:
+    drafts: false
+  build:
+    kind: revyl
+    profile: pull-request
+  proof_of_changes:
+    enabled: true
+    harness:
+      kind: revyl
+    always_verify:
+      - The fresh session bypasses onboarding and shows the Home tab with the Revyl sign-in accepted banner.
+      - Add a meal, customize it, open the cart, and place a demo order without real authentication, network services, or payment.
+      - The Home, Browse, Orders, and Account tabs remain reachable when the cart contains items.
+  strict_ci_check:
+    build: true
