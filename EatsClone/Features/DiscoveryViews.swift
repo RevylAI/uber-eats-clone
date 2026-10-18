@@ -540,6 +540,7 @@ struct RestaurantView: View {
         .foregroundStyle(.black)
         .padding(.vertical, 18)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(item.name), \(item.price.money). Customize item")
     }
 }
