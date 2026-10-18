@@ -1,5 +1,16 @@
 # Verification
 
+## 2026-10-18: Revyl configuration and test-only sign-in
+
+Build `01M58JB7XGCMM26PCN6CWQ4QA7` succeeded after correcting the build recipe to invoke the non-executable script with `bash`.
+
+- All 20 core tests passed in both Debug and Release on the cloud macOS runner, including 10 new sign-in bypass regression tests.
+- The Debug iOS app and iOS test bundle compiled successfully; iOS XCTest execution is not established by this build.
+- Revyl connected configuration validation succeeded. The repository-root configuration was published, and `revyl github status --json` reported repository access granted and project status enabled.
+- Session-preparation checks confirmed independent, sufficiently long random tokens and the expected protocol keys without retaining or displaying token values.
+
+These checks do not establish that sign-in works on a cloud iPhone or that an automatic PR proof has completed. Those require a device session and an actual PR report respectively.
+
 ## 2026-10-18: Revyl cloud build
 
 Builds `01M58EBQX8M1CCVWEJ3FAV2BJC` and `01M58EY9CZ4T32J1XPGR1R07R9` succeeded on Revyl's macOS runner using `bash scripts/build-ios.sh`. The latter includes the device-discovered cart-navigation correction.
