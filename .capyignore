@@ -5,3 +5,13 @@ docs
 .git
 .build
 .swiftpm
+.generated
+.revyl/before-session-values.json
+.revyl/dev-sessions.json
+.revyl/device-session.json
+.revyl/device-history.json
+*/.revyl/before-session-values.json
+services/ride-demo/.data
+apps/rides/build
+apps/rides/.build
+apps/rides/.generated

@@ -1,5 +1,7 @@
 # EatsClone
 
+This repository also contains a separate native **Rides** app in [`apps/rides`](apps/rides) and its shared demo service in [`services/ride-demo`](services/ride-demo). Eats remains unchanged. See the [rider/driver two-phone demo guide](docs/RIDES.md) for builds, pairing, references, and limitations.
+
 An independent, self-contained food delivery demo built with native SwiftUI for iOS 17 and later. Its interaction design is inspired by the Uber Eats references on Mobbin. This project is not affiliated with, endorsed by, or connected to Uber, Uber Eats, Mobbin, Unsplash, or any restaurant shown in its sample catalog.
 
 The initial release focuses on a local restaurant-ordering journey: onboarding, discovery, menus, item customization, cart, demo checkout, simulated order progress, and saved account data. This is not yet a complete reproduction of Uber Eats. See [scope and limitations](docs/PARITY.md), the [parity roadmap](docs/ROADMAP.md), and [design references](docs/REFERENCES.md).

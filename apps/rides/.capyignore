@@ -1,0 +1,12 @@
+build
+DerivedData
+*.xcresult
+.generated
+*.xcodeproj
+.git
+.build
+.swiftpm
+.revyl/before-session-values.json
+.revyl/dev-sessions.json
+.revyl/device-session.json
+.revyl/device-history.json

@@ -1,0 +1,5 @@
+.generated/
+.revyl/before-session-values.json
+.revyl/dev-sessions.json
+.revyl/device-history.json
+.revyl/device-session.json
