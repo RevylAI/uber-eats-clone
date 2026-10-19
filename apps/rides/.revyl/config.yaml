@@ -38,6 +38,7 @@ pr_review:
     harness:
       kind: revyl
     always_verify:
+      - "Scope this proof to the Rides application selected by this project's rides profile. Verify all applicable Rides changes and the checks below, and report any observed Rides defect. Eats has its own root project, build, session, and proof at .revyl/config.yaml. Do not require Eats ordering screens inside the Rides binary; they belong to the separate Eats proof, not an unmet Rides verification requirement."
       - A fresh Rides session opens Home with the Revyl sign-in accepted Rider banner, without opening Eats or asking for real authentication.
       - Open Where to, select an offline destination, choose a vehicle and payment label, and reach Confirm your pickup. Without a configured demo server, Connect to request a ride opens Demo connection rather than inventing a driver, trip, or charge. Do not enter real payment information.
       - Dismiss the connection and booking sheets, then verify Home, Services, Activity, and Account remain reachable. Open saved places and wallet from Account using only demo data.
