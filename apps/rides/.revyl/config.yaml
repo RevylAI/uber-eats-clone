@@ -6,7 +6,7 @@ session:
     script_path: ./scripts/prepare-revyl-session.py
     timeout_seconds: 30
   auth_bypass:
-    launch_vars: [RIDES_AUTH_BYPASS_ENABLED, RIDES_AUTH_BYPASS_TOKEN, RIDES_ACCOUNT_SESSION]
+    launch_vars: [RIDES_AUTH_BYPASS_ENABLED, RIDES_AUTH_BYPASS_TOKEN]
     deep_link: "ridesdemo://revyl-auth?token=${RIDES_AUTH_BYPASS_TOKEN}&role=rider&redirect=/home"
 build:
   framework: ios

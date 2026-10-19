@@ -82,7 +82,10 @@ class RevylConfigTests(unittest.TestCase):
                 values.append(value)
             self.assertTrue(values[0] != values[1], "Session hooks must mint a fresh token")
             auth = session["auth_bypass"]
-            self.assertEqual(set(auth["launch_vars"]), set(values[0]))
+            self.assertEqual(set(auth["launch_vars"]), {prefix + "_AUTH_BYPASS_ENABLED", prefix + "_AUTH_BYPASS_TOKEN"})
+            if prefix == "RIDES":
+                self.assertNotIn("RIDES_ACCOUNT_SESSION", auth["launch_vars"])
+                self.assertIn("RIDES_ACCOUNT_SESSION", values[0])
             link = urlparse(auth["deep_link"])
             self.assertEqual(link.scheme, scheme)
             self.assertEqual(link.netloc, "revyl-auth")
