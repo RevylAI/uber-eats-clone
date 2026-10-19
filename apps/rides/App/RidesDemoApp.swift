@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct RidesDemoApp: App {
-    @StateObject private var store = RideStore()
+    @StateObject private var store = RideStore(accountOnly: true)
     var body: some Scene {
         WindowGroup {
             RideRootView()
@@ -18,9 +18,9 @@ struct RideRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         VStack(spacing: 0) {
-            if let status = store.revylStatus {
-                Text(status).font(.caption2).frame(maxWidth: .infinity).padding(5).background(Color.yellow.opacity(0.22))
-            }
+            if store.account == nil || store.showSignIn {
+                AccountSignInView()
+            } else {
             if let error = store.errorMessage {
                 HStack(alignment: .top) {
                     Image(systemName: "exclamationmark.circle.fill")
@@ -44,11 +44,11 @@ struct RideRootView: View {
                 NavigationStack { RideActivityView() }.tabItem { Label("Activity", systemImage: "receipt.fill") }.tag(2)
                 NavigationStack { RideAccountView() }.tabItem { Label("Account", systemImage: "person.fill") }.tag(3)
             }.tint(.black)
+            }
         }
-        .sheet(isPresented: $store.showConnection) { DemoConnectionView().environmentObject(store) }
         .fullScreenCover(isPresented: $store.showBooking) { BookingFlowView().environmentObject(store) }
         .task(id: scenePhase == .active ? store.credentials?.token : nil) {
-            if scenePhase == .active { await store.runUpdates() }
+            if scenePhase == .active, store.account != nil { await store.runUpdates() }
         }
     }
 }

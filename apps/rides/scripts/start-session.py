@@ -1,43 +1,46 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import secrets
 import subprocess
 import sys
 from pathlib import Path
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode
+
+from revyl_accounts import account_for
 
 parser = argparse.ArgumentParser(description="Start an isolated Revyl rider or driver session without changing Eats defaults.")
 parser.add_argument("--role", choices=["rider", "driver"], default="rider")
 parser.add_argument("--build-version-id")
-parser.add_argument("--server")
-parser.add_argument("--room")
+parser.add_argument("--accounts-file", help="Private JSON file for a freshly registered rider/driver pair; created with mode 0600 if absent")
 args = parser.parse_args()
-if args.server:
-    parsed = urlparse(args.server)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
-        parser.error("--server must be an HTTPS address without a path or credentials")
-if args.room and (not args.server or not args.room.isascii() or not args.room.isalnum() or not 8 <= len(args.room) <= 32):
-    parser.error("--room needs --server and an 8–32 character invitation code")
+
+root = Path(__file__).resolve().parents[1]
+try:
+    session = account_for(args.role, args.accounts_file)
+    lines = (root / ".revyl/config.yaml").read_text().splitlines()
+    app_id = next(line.split(":", 1)[1].strip() for line in lines if line.strip().startswith("app_id:"))
+except Exception:
+    print("Couldn't prepare the Rides account or app configuration. Account data is withheld.", file=sys.stderr)
+    raise SystemExit(1)
 
 token = secrets.token_urlsafe(32)
 link = "ridesdemo://revyl-auth?" + urlencode({"token": token, "role": args.role, "redirect": "/home"})
 command = [
     "revyl", "device", "start", "--platform", "ios",
-    "--app-id", "1f375e45-bf9b-434a-b939-a8892a2297c3",
+    "--app-id", app_id,
     "--launch-env", "RIDES_AUTH_BYPASS_ENABLED=true",
     "--launch-env", "RIDES_AUTH_BYPASS_TOKEN=" + token,
+    "--launch-env", "RIDES_ACCOUNT_SESSION=" + session["token"],
     "--app-link", link, "--timeout", "1800", "--open=false", "--json",
 ]
 if args.build_version_id:
     command += ["--build-version-id", args.build_version_id]
-if args.server:
-    command += ["--launch-env", "RIDE_DEMO_BASE_URL=" + args.server]
-if args.room:
-    command += ["--launch-env", "RIDE_DEMO_ROOM_CODE=" + args.room.upper()]
-
-root = Path(__file__).resolve().parents[1]
-result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+environment = os.environ.copy()
+if "REVYL_UBER_API_KEY" in environment:
+    environment["REVYL_API_KEY"] = environment["REVYL_UBER_API_KEY"]
+result = subprocess.run(command, cwd=root, env=environment, capture_output=True, text=True)
 if result.returncode:
     print("Revyl could not start the rides session. Raw output is withheld because it may contain launch credentials. Inspect device availability with `revyl device list`.", file=sys.stderr)
     raise SystemExit(result.returncode)

@@ -8,7 +8,6 @@ struct BookingFlowView: View {
     @State private var placePicker: String?
     @State private var showSchedule = false
     @State private var showPayment = false
-    @State private var showConnect = false
     @State private var schedule = Date().addingTimeInterval(3600)
     var body: some View {
         NavigationStack {
@@ -34,7 +33,7 @@ struct BookingFlowView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         Text("When do you want to be picked up?").font(.system(size: 28, weight: .bold))
                         DatePicker("Pickup time", selection: $schedule, in: Date().addingTimeInterval(60)...Date().addingTimeInterval(30 * 86400), displayedComponents: [.date, .hourAndMinute]).datePickerStyle(.graphical)
-                        Text("Reserve up to 30 days ahead. In this demo, the driver manually advances reservations immediately; there is no timed dispatch.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Choose a pickup time up to 30 days ahead. A reservation does not guarantee driver availability.").font(.footnote).foregroundStyle(.secondary)
                         RidePrimaryButton(title: "Confirm pickup time") { store.draft.scheduledAt = schedule; showSchedule = false }
                         Button("Ride now instead") { store.draft.scheduledAt = nil; showSchedule = false }.frame(maxWidth: .infinity)
                         Spacer()
@@ -42,7 +41,6 @@ struct BookingFlowView: View {
                 }.tint(.black)
             }
             .sheet(isPresented: $showPayment) { NavigationStack { RideWalletView(payment: $store.draft.payment).toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showPayment = false } } } }.tint(.black) }
-            .sheet(isPresented: $showConnect) { DemoConnectionView().environmentObject(store) }
             .sheet(isPresented: Binding(get: { placePicker != nil }, set: { if !$0 { placePicker = nil } })) {
                 PlaceSearchView(title: placePicker == "pickup" ? "Pickup location" : "Add a stop") { place in
                     if placePicker == "pickup" { store.draft.pickup = place }
@@ -77,14 +75,13 @@ struct BookingFlowView: View {
                 ForEach(store.draft.stops) { stop in
                     HStack { RideLocationRow(place: stop, icon: "circle"); Button { store.draft.stops.removeAll { $0.id == stop.id } } label: { Image(systemName: "minus.circle.fill") }.accessibilityLabel("Remove \(stop.name)") }
                 }
-                if !store.draft.stops.isEmpty { Text("Each demo stop adds $3.00 to the fare.").font(.caption).foregroundStyle(.secondary) }
+                if !store.draft.stops.isEmpty { Text("Each stop adds $3.00 to the estimated fare.").font(.caption).foregroundStyle(.secondary) }
                 Text("Suggested destinations").font(.subheadline.bold())
                 ForEach(RideCatalog.search(query, saved: store.savedPlaces).filter { $0.id != store.draft.pickup.id && !store.draft.stops.contains($0) }) { place in
                     Button { store.draft.destination = place; step = 1 } label: { RideLocationRow(place: place, icon: store.savedPlaces.contains(place) ? "star.fill" : "mappin.circle.fill") }
                     Divider().padding(.leading, 42)
                 }
-                if RideCatalog.search(query, saved: store.savedPlaces).isEmpty { Text("No demo locations found. Try Airport, Home, Work, or Coffee.").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 20) }
-                Text("Locations and routes use an offline Austin demo catalog. No live geocoding.").font(.caption).foregroundStyle(.secondary)
+                if RideCatalog.search(query, saved: store.savedPlaces).isEmpty { Text("No locations found. Try Airport, Home, Work, or Coffee.").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 20) }
             }.padding(20)
         }.scrollDismissesKeyboard(.interactively)
     }
@@ -99,7 +96,7 @@ struct BookingFlowView: View {
                             RideCarArt(service: service)
                             VStack(alignment: .leading, spacing: 5) {
                                 HStack(spacing: 6) { Text(service.title).font(.system(size: 17, weight: .semibold)); Label("\(service.seats)", systemImage: "person.fill").font(.system(size: 10)) }
-                                Text(store.draft.scheduledAt == nil ? "4 min away · Demo estimate" : "Scheduled demo pickup").font(.system(size: 11)).foregroundStyle(.secondary)
+                                Text(store.draft.scheduledAt == nil ? "Estimated fare" : "Scheduled pickup").font(.system(size: 11)).foregroundStyle(.secondary)
                                 Text(service.detail).font(.system(size: 11)).foregroundStyle(.secondary)
                             }.frame(maxWidth: .infinity, alignment: .leading)
                             Text(RideCatalog.money(service.fareCents + store.draft.stops.count * 300)).font(.system(size: 15, weight: .semibold))
@@ -114,16 +111,15 @@ struct BookingFlowView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Confirm your pickup").font(.system(size: 25, weight: .bold))
-                Text("Meet your driver at the pickup spot. This is a simulated trip, not a real booking.").font(.subheadline).foregroundStyle(.secondary)
+                Text("Check your pickup location before requesting a ride.").font(.subheadline).foregroundStyle(.secondary)
                 if let destination = store.draft.destination {
                     RideRouteSummary(pickup: store.draft.pickup, destination: destination, stops: store.draft.stops)
                 }
                 if let date = store.draft.scheduledAt {
                     Label(date.formatted(date: .complete, time: .shortened), systemImage: "calendar").font(.subheadline.bold())
-                    Text("Reservations appear on the driver phone immediately and are manually advanced in this demo.").font(.caption).foregroundStyle(.secondary)
                 }
                 TextField("Add a pickup note (optional)", text: $store.draft.note, axis: .vertical).lineLimit(2...4).padding(14).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 10))
-                Text("You can cancel before the ride starts. No cancellation fees or real charges apply.").font(.caption).foregroundStyle(.secondary)
+                Text("You can cancel before the ride starts.").font(.caption).foregroundStyle(.secondary)
             }.padding(20)
         }.scrollDismissesKeyboard(.interactively)
     }
@@ -132,15 +128,14 @@ struct BookingFlowView: View {
         VStack(spacing: 12) {
             Divider()
             Button { showPayment = true } label: {
-                HStack { Image(systemName: store.draft.payment.icon); Text(store.draft.payment.rawValue).font(.system(size: 14, weight: .medium)); Spacer(); Image(systemName: "chevron.right").font(.caption) }.foregroundStyle(.black)
+                HStack { Image(systemName: store.draft.payment.icon); Text(store.draft.payment.title).font(.system(size: 14, weight: .medium)); Spacer(); Image(systemName: "chevron.right").font(.caption) }.foregroundStyle(.black)
             }
             if let error = store.errorMessage { Text(error).font(.caption).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading) }
-            RidePrimaryButton(title: step == 1 ? "Choose \(store.draft.service.title)" : store.connected ? "Confirm pickup · \(RideCatalog.money(store.draft.fareCents))" : "Connect to request a ride", busy: store.busy, disabled: store.draft.validationError() != nil) {
+            RidePrimaryButton(title: step == 1 ? "Choose \(store.draft.service.title)" : store.connected ? "Confirm pickup · \(RideCatalog.money(store.draft.fareCents))" : "Sign in to request a ride", busy: store.busy, disabled: store.draft.validationError() != nil) {
                 if step == 1 { step = 2 }
-                else if !store.connected { showConnect = true }
+                else if !store.connected { store.presentSignIn() }
                 else { Task { await store.book() } }
             }
-            Text("Demo fare · No payment will be collected").font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(.horizontal, 20).padding(.bottom, 12).background(.white)
     }
 }
@@ -155,7 +150,7 @@ struct PlaceSearchView: View {
         NavigationStack {
             List(RideCatalog.search(query, saved: store.savedPlaces)) { place in
                 Button { onSelect(place); dismiss() } label: { RideLocationRow(place: place) }
-            }.listStyle(.plain).searchable(text: $query, prompt: "Search demo locations").navigationTitle(title).navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            }.listStyle(.plain).searchable(text: $query, prompt: "Search locations").navigationTitle(title).navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
         }.tint(.black)
     }
 }

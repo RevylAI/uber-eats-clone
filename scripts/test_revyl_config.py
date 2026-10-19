@@ -14,6 +14,20 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "apps/rides/scripts"))
+
+from revyl_accounts import BACKEND_URL
+
+
+def account_response(request, timeout):
+    value = json.loads(request.data)
+    registration = value["args"]
+    if request.full_url != BACKEND_URL + "/api/action" or value["path"] != "accounts:signUp":
+        raise AssertionError("Account setup must use public registration")
+    token = "user." + registration["password"]
+    profile = {"id": "fixture-user", "name": registration["name"], "email": registration["email"], "role": registration["role"], "vehicle": registration.get("vehicle"), "plate": registration.get("plate")}
+    session = {"account": profile, "roomCode": profile["id"], "participantId": profile["id"], "name": profile["name"], "role": profile["role"], "token": token, "expiresAt": 9000000000000}
+    return io.BytesIO(json.dumps({"status": "success", "value": session}).encode())
 
 
 class RevylConfigTests(unittest.TestCase):
@@ -45,10 +59,24 @@ class RevylConfigTests(unittest.TestCase):
             self.assertTrue(os.access(hook, os.X_OK))
             values = []
             for _ in range(2):
-                result = subprocess.run([sys.executable, str(hook)], capture_output=True, text=True)
-                self.assertEqual(result.returncode, 0)
-                value = dict(line.split("=", 1) for line in result.stdout.splitlines())
-                self.assertEqual(set(value), {prefix + "_AUTH_BYPASS_ENABLED", prefix + "_AUTH_BYPASS_TOKEN"})
+                if prefix == "RIDES":
+                    output = io.StringIO()
+                    with patch("revyl_accounts.urlopen", side_effect=account_response) as request, contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as exit:
+                        runpy.run_path(str(hook), run_name="__main__")
+                    self.assertEqual(exit.exception.code, 0)
+                    self.assertEqual(request.call_count, 1)
+                    self.assertEqual(json.loads(request.call_args.args[0].data)["args"]["role"], "rider")
+                    text = output.getvalue()
+                else:
+                    result = subprocess.run([sys.executable, str(hook)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0)
+                    text = result.stdout
+                value = dict(line.split("=", 1) for line in text.splitlines())
+                expected = {prefix + "_AUTH_BYPASS_ENABLED", prefix + "_AUTH_BYPASS_TOKEN"}
+                if prefix == "RIDES":
+                    expected.add("RIDES_ACCOUNT_SESSION")
+                    self.assertTrue(value["RIDES_ACCOUNT_SESSION"].startswith("user."))
+                self.assertEqual(set(value), expected)
                 self.assertEqual(value[prefix + "_AUTH_BYPASS_ENABLED"], "true")
                 self.assertTrue(len(value[prefix + "_AUTH_BYPASS_TOKEN"]) >= 32)
                 values.append(value)
@@ -77,8 +105,10 @@ class RevylConfigTests(unittest.TestCase):
         for role in ["rider", "driver"]:
             output = io.StringIO()
             response = subprocess.CompletedProcess([], 0, stdout=json.dumps({"session_id": "test-session", "launch_env": "must-not-be-printed"}), stderr="")
-            with patch.object(sys, "argv", [str(script), "--role", role]), patch("subprocess.run", return_value=response) as run, contextlib.redirect_stdout(output):
+            with patch.object(sys, "argv", [str(script), "--role", role]), patch("revyl_accounts.urlopen", side_effect=account_response) as request, patch("subprocess.run", return_value=response) as run, contextlib.redirect_stdout(output):
                 runpy.run_path(str(script), run_name="__main__")
+            self.assertEqual(request.call_count, 1)
+            self.assertEqual(json.loads(request.call_args.args[0].data)["args"]["role"], role)
             self.assertEqual(run.call_args.kwargs["cwd"], ROOT / "apps/rides")
             command = run.call_args.args[0]
             link = command[command.index("--app-link") + 1]
@@ -86,6 +116,7 @@ class RevylConfigTests(unittest.TestCase):
             self.assertTrue(parse_qs(urlparse(link).query)["role"] == [role])
             app = next(iter(self.configs[1]["build"]["profiles"].values()))["ios"]["app_id"]
             self.assertTrue(command[command.index("--app-id") + 1] == app)
+            self.assertTrue(any(value.startswith("RIDES_ACCOUNT_SESSION=user.") for value in command))
             self.assertEqual(json.loads(output.getvalue()), {"session_id": "test-session", "role": role})
 
     def test_runtime_state_is_ignored_for_both_projects(self):

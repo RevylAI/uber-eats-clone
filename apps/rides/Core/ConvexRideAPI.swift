@@ -26,6 +26,31 @@ final class ConvexRideAPIClient: RideAPI {
         return Data(bytes).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 
+    static func module(for token: String) -> String { token.hasPrefix("user.") ? "dispatch" : "rides" }
+
+    func signUp(_ registration: RideRegistration) async throws -> RideSession {
+        do {
+            return try await client.action("accounts:signUp", with: ["name": registration.name, "email": registration.email, "password": registration.password, "role": registration.role.rawValue, "vehicle": registration.vehicle, "plate": registration.plate])
+        } catch { throw Self.apiError(error) }
+    }
+
+    func signIn(email: String, password: String) async throws -> RideSession {
+        do { return try await client.action("accounts:signIn", with: ["email": email, "password": password]) }
+        catch { throw Self.apiError(error) }
+    }
+
+    func resume(token: String) async throws -> RideSession {
+        do {
+            for try await session in client.subscribe(to: "accounts:resume", with: ["token": token], yielding: RideSession.self).values { return session }
+            throw RideAPIError(status: 0, message: "The sign-in connection closed. Try again.")
+        } catch { throw Self.apiError(error) }
+    }
+
+    func signOut(token: String) async throws {
+        do { let _: Bool = try await client.mutation("accounts:signOut", with: ["token": token]) }
+        catch { throw Self.apiError(error) }
+    }
+
     func create(name: String) async throws -> RideSession {
         try await mutate("createRoom", args: ["name": name, "token": Self.freshToken()])
     }
@@ -36,7 +61,7 @@ final class ConvexRideAPIClient: RideAPI {
 
     func state(token: String) async throws -> RideRoomState {
         do {
-            for try await state in client.subscribe(to: "rides:state", with: ["token": token], yielding: RideRoomState.self).values {
+            for try await state in client.subscribe(to: Self.module(for: token) + ":state", with: ["token": token], yielding: RideRoomState.self).values {
                 return state
             }
             throw RideAPIError(status: 0, message: "The shared ride connection closed. Try again.")
@@ -44,20 +69,20 @@ final class ConvexRideAPIClient: RideAPI {
     }
 
     func availability(token: String, online: Bool) async throws -> RideRoomState {
-        try await mutate("availability", args: ["token": token, "online": online])
+        try await mutate("availability", module: Self.module(for: token), args: ["token": token, "online": online])
     }
 
     func book(token: String, request: TripRequest) async throws -> RideRoomState {
-        try await mutate("book", args: ["token": token, "request": request])
+        try await mutate("book", module: Self.module(for: token), args: ["token": token, "request": request])
     }
 
     func act(token: String, tripID: String, action: RideAction) async throws -> RideRoomState {
-        try await mutate("act", args: ["token": token, "tripID": tripID, "action": action])
+        try await mutate("act", module: Self.module(for: token), args: ["token": token, "tripID": tripID, "action": action])
     }
 
     func updates(token: String) -> AsyncThrowingStream<RideSyncEvent, Error> {
         AsyncThrowingStream { continuation in
-            let state = client.subscribe(to: "rides:state", with: ["token": token], yielding: RideRoomState.self)
+            let state = client.subscribe(to: Self.module(for: token) + ":state", with: ["token": token], yielding: RideRoomState.self)
                 .map(RideSyncEvent.state)
             let connection = connectionState
                 .map(RideSyncEvent.connection)
@@ -74,8 +99,8 @@ final class ConvexRideAPIClient: RideAPI {
         }
     }
 
-    private func mutate<T: Decodable>(_ name: String, args: [String: ConvexEncodable?]) async throws -> T {
-        do { return try await client.mutation("rides:" + name, with: args) }
+    private func mutate<T: Decodable>(_ name: String, module: String = "rides", args: [String: ConvexEncodable?]) async throws -> T {
+        do { return try await client.mutation(module + ":" + name, with: args) }
         catch { throw Self.apiError(error) }
     }
 

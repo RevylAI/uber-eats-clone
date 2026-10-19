@@ -26,11 +26,11 @@ struct KeychainRideSessionVault: RideSessionVault {
         let attributes: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
         let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if status == errSecSuccess { return }
-        guard status == errSecItemNotFound else { throw RideAPIError(status: 0, message: "Couldn't securely save the demo session (Keychain \(status)).") }
+        guard status == errSecItemNotFound else { throw RideAPIError(status: 0, message: "Couldn't securely save your session (Keychain \(status)).") }
         var item = query
         attributes.forEach { item[$0.key] = $0.value }
         let added = SecItemAdd(item as CFDictionary, nil)
-        guard added == errSecSuccess else { throw RideAPIError(status: 0, message: "Couldn't securely save the demo session (Keychain \(added)).") }
+        guard added == errSecSuccess else { throw RideAPIError(status: 0, message: "Couldn't securely save your session (Keychain \(added)).") }
     }
     func clear() { SecItemDelete(query as CFDictionary) }
 }
@@ -52,6 +52,7 @@ final class RideStore: ObservableObject {
     @Published var draft = BookingDraft()
     @Published var showBooking = false
     @Published var showConnection = false
+    @Published var showSignIn = false
     @Published var focusedTripID: String?
     @Published var revylStatus: String?
     @Published var savedPlaces: [DemoPlace] {
@@ -68,15 +69,17 @@ final class RideStore: ObservableObject {
     private let apiFactory: (URL) -> any RideAPI
     private var api: (any RideAPI)?
 
-    init(defaults: UserDefaults = .standard, vault: any RideSessionVault = KeychainRideSessionVault(), apiFactory: @escaping (URL) -> any RideAPI = { RideBackend.client(for: $0) }) {
+    init(defaults: UserDefaults = .standard, vault: any RideSessionVault = KeychainRideSessionVault(), accountOnly: Bool = false, apiFactory: @escaping (URL) -> any RideAPI = { RideBackend.client(for: $0) }) {
         self.defaults = defaults
         self.vault = vault
         self.apiFactory = apiFactory
-        let restored = vault.load()
+        let saved = vault.load()
+        let restored = accountOnly && saved?.account == nil ? nil : saved
+        if accountOnly && saved != nil && restored == nil { vault.clear() }
         credentials = restored
         role = restored?.role ?? .rider
         displayName = restored?.name ?? DemoRole.rider.defaultName
-        serverAddress = restored?.baseURL.absoluteString ?? RevylRideSignIn.launchValue("RIDE_DEMO_BASE_URL") ?? defaults.string(forKey: "serverAddress") ?? RideBackend.defaultAddress
+        serverAddress = restored?.baseURL.absoluteString ?? (accountOnly ? RideBackend.defaultAddress : RevylRideSignIn.launchValue("RIDE_DEMO_BASE_URL") ?? defaults.string(forKey: "serverAddress") ?? RideBackend.defaultAddress)
         savedPlaces = defaults.data(forKey: "savedPlaces").flatMap { try? JSONDecoder().decode([DemoPlace].self, from: $0) } ?? [RideCatalog.places[2], RideCatalog.places[3]]
         rideReminders = defaults.object(forKey: "rideReminders") as? Bool ?? true
         defaultPayment = defaults.string(forKey: "defaultPayment").flatMap(DemoPayment.init(rawValue:)) ?? .visa
@@ -84,15 +87,89 @@ final class RideStore: ObservableObject {
     }
 
     var connected: Bool { credentials != nil }
+    var account: RideAccount? { credentials?.account }
     var isDriverOnline: Bool { state?.onlineDriverIds.contains(credentials?.participantId ?? "") == true }
     var activeTrip: DemoTrip? { state?.activeTrip }
     var focusedTrip: DemoTrip? { state?.trips.first { $0.id == focusedTripID } }
-    var myDriverTrip: DemoTrip? { activeTrip.flatMap { $0.driver?.id == credentials?.participantId ? $0 : nil } }
+    var myDriverTrip: DemoTrip? { state?.trips.first { $0.status.isActive && $0.driver?.id == credentials?.participantId } }
+    var ownedActiveTrip: DemoTrip? { role == .driver ? myDriverTrip : activeTrip }
     var pastTrips: [DemoTrip] { (state?.trips ?? []).filter { !$0.status.isActive } }
     var earningsCents: Int {
         (state?.trips ?? []).filter { $0.status == .completed && $0.driver?.id == credentials?.participantId }.reduce(0) { $0 + $1.totalCents }
     }
     var syncIsFresh: Bool { syncConnected }
+
+    func presentSignIn() { showSignIn = true }
+
+    private func installAccount(_ session: RideSession, client: any RideAPI, expectedRole: DemoRole? = nil) throws {
+        guard let account = session.account, account.id == session.participantId, account.id == session.roomCode,
+              account.role == session.role, account.name == session.name, session.state.roomCode == account.id,
+              expectedRole == nil || expectedRole == account.role,
+              session.token.hasPrefix("user."), session.token.count >= 48,
+              let expiresAt = session.expiresAt, expiresAt.isFinite, expiresAt > Date().timeIntervalSince1970 * 1000 else {
+            throw RideAPIError(status: 401, message: "Couldn't verify your account. Sign in again.")
+        }
+        let stored = StoredRideSession(session, baseURL: client.baseURL)
+        try vault.save(stored)
+        state = nil
+        focusedTripID = nil
+        api = client
+        credentials = stored
+        role = account.role
+        displayName = account.name
+        serverAddress = client.baseURL.absoluteString
+        apply(session.state, for: stored)
+        showSignIn = false
+        showConnection = false
+        errorMessage = nil
+        notice = nil
+        tab = 0
+    }
+
+    func signIn(email: String, password: String, registration: RideRegistration? = nil) async -> Bool {
+        guard !busy, account == nil else { return false }
+        busy = true
+        defer { busy = false }
+        do {
+            let client = apiFactory(try RideAPIClient.validatedURL(serverAddress))
+            let session: RideSession
+            if let registration { session = try await client.signUp(registration) }
+            else { session = try await client.signIn(email: email, password: password) }
+            do {
+                try Task.checkCancellation()
+                try installAccount(session, client: client, expectedRole: registration?.role)
+            }
+            catch { try? await client.signOut(token: session.token); throw error }
+            return true
+        } catch {
+            if error is CancellationError { return false }
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func signOut() async {
+        guard !busy, let credentials, let api else { return }
+        busy = true
+        defer { busy = false }
+        do {
+            let incoming = try await api.state(token: credentials.token)
+            apply(incoming, for: credentials)
+            guard ownedActiveTrip == nil else {
+                errorMessage = "Finish or cancel your active ride before signing out."
+                return
+            }
+            if credentials.role == .driver { _ = try await api.availability(token: credentials.token, online: false) }
+            try await api.signOut(token: credentials.token)
+            disconnect()
+            showSignIn = true
+            errorMessage = nil
+        } catch {
+            if (error as? RideAPIError)?.status == 401 { handleSyncError(error, for: credentials) }
+            else if (error as? RideAPIError)?.status == 409 { await sync(); errorMessage = error.localizedDescription }
+            else { errorMessage = "Couldn't sign out. Check your connection and try again." }
+        }
+    }
 
     func chooseRole(_ value: DemoRole) {
         guard !connected else { return }
@@ -107,7 +184,7 @@ final class RideStore: ObservableObject {
         do {
             let url = try RideAPIClient.validatedURL(serverAddress)
             let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty, name.count <= 60 else { throw RideAPIError(status: 0, message: "Enter a demo name of up to 60 characters.") }
+            guard !name.isEmpty, name.count <= 60 else { throw RideAPIError(status: 0, message: "Enter a name of up to 60 characters.") }
             guard !createNew || role == .rider else { throw RideAPIError(status: 0, message: "Create the room on the rider phone first.") }
             let code = roomInput.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
             guard createNew || (!code.isEmpty && code.count <= 32 && code.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })) else { throw RideAPIError(status: 0, message: "Enter the invitation code from the rider phone.") }
@@ -129,7 +206,11 @@ final class RideStore: ObservableObject {
     }
 
     func disconnect() {
-        guard activeTrip == nil else { errorMessage = "Finish or cancel the active ride before leaving this demo."; return }
+        guard ownedActiveTrip == nil else { errorMessage = "Finish or cancel your active ride before signing out."; return }
+        clearSession()
+    }
+
+    private func clearSession() {
         credentials = nil
         api = nil
         state = nil
@@ -137,6 +218,13 @@ final class RideStore: ObservableObject {
         syncConnected = false
         focusedTripID = nil
         roomInput = ""
+        role = .rider
+        displayName = ""
+        tab = 0
+        draft = BookingDraft()
+        showBooking = false
+        notice = nil
+        revylStatus = nil
         vault.clear()
     }
 
@@ -177,13 +265,10 @@ final class RideStore: ObservableObject {
         guard !Task.isCancelled, self.credentials?.token == credentials.token else { return }
         syncConnected = false
         if let error = error as? RideAPIError, [401, 404].contains(error.status) {
-            self.credentials = nil
-            api = nil
-            state = nil
-            lastSync = nil
-            vault.clear()
+            clearSession()
             showConnection = true
-            errorMessage = "This demo session has expired. Create or join a room again."
+            showSignIn = true
+            errorMessage = "Your session has expired. Sign in again to continue."
         } else {
             errorMessage = "Connection lost. Check your internet connection and tap Retry."
         }
@@ -201,7 +286,7 @@ final class RideStore: ObservableObject {
 
     private func perform(_ action: (any RideAPI, StoredRideSession) async throws -> RideRoomState) async -> Bool {
         guard !busy else { return false }
-        guard let api, let credentials else { showConnection = true; return false }
+        guard let api, let credentials else { showSignIn = true; return false }
         busy = true
         defer { busy = false }
         do {
@@ -247,6 +332,7 @@ final class RideStore: ObservableObject {
         draft.payment = defaultPayment
         draft.destination = destination
         if reserve { draft.scheduledAt = Date().addingTimeInterval(3600) }
+        guard account != nil else { presentSignIn(); return }
         showBooking = true
     }
     func handle(_ url: URL, environment: [String: String] = ProcessInfo.processInfo.environment, arguments: [String] = ProcessInfo.processInfo.arguments) async {
@@ -255,14 +341,25 @@ final class RideStore: ObservableObject {
         case .ignored: return
         case .rejected(let reason): revylStatus = "Revyl sign-in rejected: \(reason)"
         case .accepted(let role, let tab):
-            guard credentials == nil || credentials?.role == role else { revylStatus = "Revyl sign-in rejected: Leave the current demo before switching roles"; return }
-            chooseRole(role)
-            self.tab = tab
-            revylStatus = "Revyl sign-in accepted · \(role.title)"
-            if let value = RevylRideSignIn.launchValue("RIDE_DEMO_BASE_URL", environment: environment, arguments: arguments) { serverAddress = value }
-            if let code = RevylRideSignIn.launchValue("RIDE_DEMO_ROOM_CODE", environment: environment, arguments: arguments), !code.isEmpty {
-                roomInput = code
-                await connect(createNew: false)
+            guard !busy, account == nil else { return }
+            guard let token = RevylRideSignIn.launchValue("RIDES_ACCOUNT_SESSION", environment: environment, arguments: arguments), token.hasPrefix("user.") else {
+                revylStatus = "Revyl sign-in rejected: Account session is missing"
+                return
+            }
+            busy = true
+            defer { busy = false }
+            do {
+                let client = apiFactory(try RideAPIClient.validatedURL(serverAddress))
+                let session = try await client.resume(token: token)
+                try Task.checkCancellation()
+                guard session.token == token else { throw RideAPIError(status: 401, message: "Invalid account session") }
+                try installAccount(session, client: client, expectedRole: role)
+                self.tab = tab
+                revylStatus = "Revyl sign-in accepted · \(role.title)"
+            } catch {
+                guard !Task.isCancelled else { return }
+                revylStatus = "Revyl sign-in rejected: Couldn't verify the account"
+                errorMessage = "Couldn't sign in. Check your connection and try again."
             }
         }
         #endif

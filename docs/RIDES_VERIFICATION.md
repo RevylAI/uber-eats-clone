@@ -2,6 +2,18 @@
 
 No real ride, charge, call, or location tracking is performed.
 
+## Account-backed follow-up — verification in progress
+
+The current follow-up replaces the invitation UI with database-backed registration, sign-in, persisted profiles, and sign-out. It removes customer-facing demo language, pairing controls, fixed profile ratings and wallet balances, and visible Revyl banners. New account dispatch is separate from the legacy room API described below, which remains compatible for older clients.
+
+The integrated backend passes 114 tests, including all 45 legacy cases, and npm audit reports no vulnerabilities. The production deploy dry run also passes with Node type declarations explicitly enabled. Six configuration-isolation tests and eight account-session setup tests pass. These are local/transaction checks, not proof of deployed account behavior.
+
+An isolated source snapshot compiled the new native screens and test bundle on the Uber account's arm64 runner. Attempting simulator execution there failed because that runner has no available iPhone simulator runtime; this does not establish executed iOS XCTest. The follow-up's exact-head simulator CI and native paired-account device verification are still required. The latest upgrade/session regression is newer than that first build snapshot.
+
+Uber API access and its existing Eats/Rides app containers are verified with the separate `REVYL_UBER_API_KEY`. GitHub repository authorization/project discovery in that account is still blocked; existing repository configs and the original API key have not been migrated or replaced. Do not treat a successful manual app build as completed GitHub automation migration.
+
+The earlier hosted-room PR at `dc03df4c` has now completed its independent single-phone Revyl proof with no defects found in the exercised request/cancellation/navigation flow. That evidence does not verify the new account follow-up or paired behavior.
+
 ## Hosted Convex deployment — October 19, 2026
 
 The existing `landseer-enga/uber-clone` production deployment is `https://harmless-mammoth-742.convex.cloud`. The CLI deployed the schema, seven indexes, and six public ride functions; inspection confirmed `rooms`, `participants`, `credentials`, and `trips` tables. No replacement project was created and no existing project was deleted. The production service does not depend on a workspace process.

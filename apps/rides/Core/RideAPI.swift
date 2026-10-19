@@ -16,6 +16,10 @@ enum RideSyncEvent {
 
 protocol RideAPI {
     var baseURL: URL { get }
+    func signUp(_ registration: RideRegistration) async throws -> RideSession
+    func signIn(email: String, password: String) async throws -> RideSession
+    func resume(token: String) async throws -> RideSession
+    func signOut(token: String) async throws
     func create(name: String) async throws -> RideSession
     func join(code: String, role: DemoRole, name: String) async throws -> RideSession
     func state(token: String) async throws -> RideRoomState
@@ -26,6 +30,18 @@ protocol RideAPI {
 }
 
 extension RideAPI {
+    func signUp(_ registration: RideRegistration) async throws -> RideSession {
+        throw RideAPIError(status: 400, message: "Account sign-in is unavailable for this service.")
+    }
+    func signIn(email: String, password: String) async throws -> RideSession {
+        throw RideAPIError(status: 400, message: "Account sign-in is unavailable for this service.")
+    }
+    func resume(token: String) async throws -> RideSession {
+        throw RideAPIError(status: 401, message: "Sign in again to continue.")
+    }
+    func signOut(token: String) async throws {
+        throw RideAPIError(status: 400, message: "Account sign-out is unavailable for this service.")
+    }
     func updates(token: String) -> AsyncThrowingStream<RideSyncEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
@@ -68,7 +84,7 @@ struct RideAPIClient: RideAPI {
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
               parts.path.isEmpty || parts.path == "/",
               parts.scheme == "https" || (parts.scheme == "http" && ["localhost", "127.0.0.1", "[::1]"].contains(host)) else {
-            throw RideAPIError(status: 0, message: "Enter the HTTPS address of your demo server, without a path. Localhost HTTP is allowed for development.")
+            throw RideAPIError(status: 0, message: "The service address must use HTTPS without a path. Localhost HTTP is allowed for development.")
         }
         return url
     }
@@ -104,7 +120,7 @@ struct RideAPIClient: RideAPI {
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw RideAPIError(status: 0, message: "The server didn't return an HTTP response.") }
         guard (200..<300).contains(response.statusCode) else {
-            let message = (try? JSONDecoder().decode(Failure.self, from: data).error) ?? "The demo server couldn't complete this request."
+            let message = (try? JSONDecoder().decode(Failure.self, from: data).error) ?? "The service couldn't complete this request."
             throw RideAPIError(status: response.statusCode, message: message)
         }
         return try JSONDecoder().decode(T.self, from: data)
