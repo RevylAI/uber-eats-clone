@@ -33,7 +33,9 @@ struct BookingFlowView: View {
                         planView
                     } else {
                         ZStack(alignment: .topLeading) {
-                            DemoMapView(pickup: store.draft.pickup, destination: store.draft.destination ?? store.draft.pickup, stops: store.draft.stops)
+                            if focusedField != .note {
+                                DemoMapView(pickup: store.draft.pickup, destination: store.draft.destination ?? store.draft.pickup, stops: store.draft.stops)
+                            }
                             Button {
                                 focusedField = nil
                                 if step == 1 { query = store.draft.destination?.name ?? "" }
@@ -42,7 +44,7 @@ struct BookingFlowView: View {
                                 Image(systemName: "arrow.left").font(.system(size: 20, weight: .medium))
                                     .frame(width: 44, height: 44).background(.white).clipShape(Circle())
                             }.padding(16).accessibilityLabel(step == 1 ? "Edit route" : "Back to ride options")
-                        }.frame(height: max(150, min(geometry.size.height * (step == 1 ? 0.27 : 0.34), 290)))
+                        }.frame(height: focusedField == .note ? 76 : max(150, min(geometry.size.height * (step == 1 ? 0.27 : 0.34), 290)))
                         VStack(spacing: 0) {
                             Capsule().fill(Color.black.opacity(0.1)).frame(width: 36, height: 4).padding(.top, 9).padding(.bottom, 14).accessibilityHidden(true)
                             if step == 1 { chooseRideView }
@@ -52,7 +54,7 @@ struct BookingFlowView: View {
                         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 22, topTrailingRadius: 22))
                         .padding(.top, -20)
                     }
-                    if step > 0 || store.draft.destination != nil { footer }
+                    if focusedField != .note && (step > 0 || store.draft.destination != nil) { footer }
                 }.background(.white)
             }
             .navigationTitle(step == 0 ? "Plan your ride" : "")
@@ -201,47 +203,59 @@ struct BookingFlowView: View {
     }
 
     private var confirmPickupView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Confirm the pickup spot").font(.system(size: 22, weight: .semibold)).frame(maxWidth: .infinity)
-                Divider()
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Pickup").font(.caption).foregroundStyle(.secondary)
-                        Text(store.draft.pickup.name).font(.system(size: 18, weight: .semibold))
-                        Text(store.draft.pickup.address).font(.system(size: 13)).foregroundStyle(.secondary)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    Button { focusedField = nil; placePicker = "pickup" } label: {
-                        Text("Edit").font(.system(size: 14, weight: .semibold)).padding(.horizontal, 18).padding(.vertical, 12).background(RideStyle.soft).clipShape(Capsule())
-                    }.accessibilityLabel("Edit pickup location")
-                }
-                if let destination = store.draft.destination {
-                    Button { focusedField = nil; placePicker = "destination" } label: {
+        GeometryReader { geometry in
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("Confirm the pickup spot").font(.system(size: 22, weight: .semibold)).frame(maxWidth: .infinity)
+                        Divider()
                         HStack {
-                            Label(destination.name, systemImage: "square.fill").font(.subheadline).lineLimit(2)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Pickup").font(.caption).foregroundStyle(.secondary)
+                                Text(store.draft.pickup.name).font(.system(size: 18, weight: .semibold))
+                                Text(store.draft.pickup.address).font(.system(size: 13)).foregroundStyle(.secondary)
+                            }.frame(maxWidth: .infinity, alignment: .leading)
+                            Button { focusedField = nil; placePicker = "pickup" } label: {
+                                Text("Edit").font(.system(size: 14, weight: .semibold)).padding(.horizontal, 18).padding(.vertical, 12).background(RideStyle.soft).clipShape(Capsule())
+                            }.accessibilityLabel("Edit pickup location")
                         }
-                    }.accessibilityLabel("Edit destination, \(destination.name)")
-                }
-                if !store.draft.stops.isEmpty {
-                    Button { focusedField = nil; query = store.draft.destination?.name ?? ""; step = 0 } label: {
-                        Label("\(store.draft.stops.count) stop\(store.draft.stops.count == 1 ? "" : "s") · Edit route", systemImage: "point.topleft.down.to.point.bottomright.curvepath").font(.subheadline)
-                    }
-                }
-                Button { focusedField = nil; showSchedule = true } label: {
-                    Label(store.draft.scheduledAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "Pickup now", systemImage: "clock")
-                        .font(.subheadline)
-                }.accessibilityLabel("Edit pickup time")
-                VStack(alignment: .leading, spacing: 6) {
-                    TextField("Pickup note (optional)", text: $store.draft.note, axis: .vertical).lineLimit(2...3)
-                        .focused($focusedField, equals: .note).padding(14).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 10))
-                        .accessibilityIdentifier("booking.pickupNote")
-                    Text("\(store.draft.note.count)/300 characters").font(.caption).foregroundStyle(store.draft.note.count > 300 ? .red : .secondary).frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                Text("Your request is sent when you confirm. You can cancel before the ride starts.").font(.caption).foregroundStyle(.secondary)
-            }.padding(.horizontal, 20).padding(.bottom, 18)
-        }.scrollDismissesKeyboard(.interactively)
+                        if let destination = store.draft.destination {
+                            Button { focusedField = nil; placePicker = "destination" } label: {
+                                HStack {
+                                    Label(destination.name, systemImage: "square.fill").font(.subheadline).lineLimit(2)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.caption)
+                                }
+                            }.accessibilityLabel("Edit destination, \(destination.name)")
+                        }
+                        if !store.draft.stops.isEmpty {
+                            Button { focusedField = nil; query = store.draft.destination?.name ?? ""; step = 0 } label: {
+                                Label("\(store.draft.stops.count) stop\(store.draft.stops.count == 1 ? "" : "s") · Edit route", systemImage: "point.topleft.down.to.point.bottomright.curvepath").font(.subheadline)
+                            }
+                        }
+                        Button { focusedField = nil; showSchedule = true } label: {
+                            Label(store.draft.scheduledAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "Pickup now", systemImage: "clock")
+                                .font(.subheadline)
+                        }.accessibilityLabel("Edit pickup time")
+                        VStack(alignment: .leading, spacing: 6) {
+                            TextField("Pickup note (optional)", text: $store.draft.note, axis: .vertical).lineLimit(2...3)
+                                .focused($focusedField, equals: .note).padding(14).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 10))
+                                .accessibilityIdentifier("booking.pickupNote")
+                            Text("\(store.draft.note.count)/300 characters").font(.caption).foregroundStyle(store.draft.note.count > 300 ? .red : .secondary).frame(maxWidth: .infinity, alignment: .trailing)
+                        }.id(Field.note)
+                        Text("Your request is sent when you confirm. You can cancel before the ride starts.").font(.caption).foregroundStyle(.secondary)
+                    }.padding(.horizontal, 20).padding(.bottom, 18)
+                }.scrollDismissesKeyboard(.interactively)
+                    .onChange(of: focusedField) { _, _ in revealPickupNote(in: scroll) }
+                    .onChange(of: geometry.size.height) { _, _ in revealPickupNote(in: scroll) }
+                    .onChange(of: store.draft.note) { _, _ in revealPickupNote(in: scroll) }
+            }
+        }
+    }
+
+    private func revealPickupNote(in scroll: ScrollViewProxy) {
+        guard focusedField == .note else { return }
+        withAnimation { scroll.scrollTo(Field.note, anchor: .center) }
     }
 
     private var footer: some View {
