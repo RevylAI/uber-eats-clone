@@ -27,7 +27,7 @@ struct TripTrackingView: View {
                                 if trip.status == .cancelled {
                                     Text(trip.cancellationReason ?? "Plans changed. No fee was charged.").font(.subheadline).foregroundStyle(.secondary)
                                     Text("No cancellation fee. No payment was collected.").font(.subheadline).foregroundStyle(.secondary)
-                                    RidePrimaryButton(title: "Back to Home") { store.focusedTripID = nil }
+                                    RidePrimaryButton(title: "Back to Home") { store.focusedTripID = nil; store.tab = 0 }
                                 }
                                 if let driver = trip.driver {
                                     HStack(alignment: .center, spacing: 14) {
