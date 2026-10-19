@@ -1,0 +1,19 @@
+name: Revyl setup
+on:
+  push:
+    branches: [main]
+    paths: ['.revyl/**', 'apps/rides/.revyl/**', 'scripts/prepare-revyl-session.py', 'apps/rides/scripts/*.py', 'scripts/test_revyl_config.py', '.github/workflows/revyl.yml']
+  pull_request:
+    paths: ['.revyl/**', 'apps/rides/.revyl/**', 'scripts/prepare-revyl-session.py', 'apps/rides/scripts/*.py', 'scripts/test_revyl_config.py', '.github/workflows/revyl.yml']
+permissions:
+  contents: read
+jobs:
+  isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install PyYAML==6.0.3
+      - run: python scripts/test_revyl_config.py

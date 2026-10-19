@@ -4,20 +4,25 @@ The repository contains two independent iOS 17+ SwiftUI applications. The origin
 
 ## Build profiles
 
-The repository-root `.revyl/config.yaml` has distinct app IDs and artifact paths:
+The apps share this Git repository, but each has its own Revyl project root, session setup, and automatic PR proof policy:
 
-| Profile | Revyl app | Command | Output |
+| Config | Profile | Revyl app | Build command and output, relative to its project root |
 | --- | --- | --- | --- |
-| `pull-request` | Eats, `ecced7bf-9a43-4a8b-9a26-c072fa7bad74` | `bash scripts/build-ios.sh` | `build/Build/Products/Debug-iphonesimulator/EatsClone.app` |
-| `rides` | Rides, `1f375e45-bf9b-434a-b939-a8892a2297c3` | `bash apps/rides/scripts/build-ios.sh` | `apps/rides/build/Build/Products/Debug-iphonesimulator/RidesDemo.app` |
+| `.revyl/config.yaml` | `pull-request` | Eats, `ecced7bf-9a43-4a8b-9a26-c072fa7bad74` | `bash scripts/build-ios.sh` → `build/Build/Products/Debug-iphonesimulator/EatsClone.app` |
+| `apps/rides/.revyl/config.yaml` | `rides` | Rides, `1f375e45-bf9b-434a-b939-a8892a2297c3` | `bash scripts/build-ios.sh` → `build/Build/Products/Debug-iphonesimulator/RidesDemo.app` |
 
 ```sh
 revyl config validate
+revyl -C apps/rides config validate
 revyl build --profile pull-request --platform ios
-revyl build --profile rides --platform ios
+revyl -C apps/rides build --profile rides --platform ios
 ```
 
-Revyl manages the published configuration from `main`; a configuration PR must merge before it changes that published version. Local explicit builds use the checked-out recipe. The automatic PR review profile and its Proof of Changes instructions still target **Eats**. Adding a second build profile does not establish automatic rides or two-phone proof coverage.
+The root project remains Eats-only; run Rides CLI commands with `-C apps/rides` or from that directory. Revyl selects the nearest config, so each app gets its own sign-in rather than inheriting the Eats hook. Project `b13e33ff-5c8d-490e-bb24-9ef1d4c06bba` is registered at `apps/rides`, with independent preview builds, Revyl-harness Proof of Changes, strict build checks, and triggers for Rides and its shared service. Eats triggers cover its own source and configuration. A change touching both sets of paths is eligible for both projects.
+
+The Rides project was published in manual authority so automation can run before the config reaches `main`. Once Revyl reconciles its designated config from `main`, Git becomes authoritative. The existing root project is already Git-managed; its updated published aggregate follows `main`, while PR candidate configuration is validated at the exact PR head. Do not use a force-push of server configuration to bypass Git authority.
+
+Rides automatic proof exercises independent Rider sign-in, offline booking through pickup confirmation, the connection-required boundary, tabs, saved places, and wallet. It deliberately does not claim to verify a two-phone trip without a reachable shared service and a second phone. Paired dispatch, chat, completion, and cancellation were verified separately on native phones. This setup does not deploy a permanent backend or establish full Uber parity.
 
 On a Mac, `cd apps/rides && bash scripts/build-ios.sh` runs the core tests in Debug and Release and builds the iOS app and test bundle. Simulator builds are ad-hoc signed with a simulator-specific Keychain identity; an unsigned simulator app cannot save the shared session. `bash scripts/verify-ios.sh` additionally executes XCTest, including a real Keychain round trip, on an installed iPhone simulator. The cloud build recipe compiles but does not execute iOS XCTest. The `Rides demo` GitHub workflow runs server tests and the simulator verification separately, on pull requests and pushes to `main`.
 
@@ -46,7 +51,7 @@ Each room permits one active trip. Competing online drivers cannot both accept i
 
 ## Isolated Revyl sign-in
 
-The shared project's default session hook remains the existing Eats buyer bypass. The Rides session launcher explicitly overrides the app and deep link without changing that default or organization-wide secrets:
+Each project owns its session hook. The root hook mints an Eats buyer token; `apps/rides/scripts/prepare-revyl-session.py` mints a fresh Rides token. Rides preview sessions without a checkout use the separate `RIDES_AUTH_BYPASS_ENABLED` and encrypted `RIDES_AUTH_BYPASS_TOKEN` organization launch references. They never replace the Eats variables. The automatic Rides proof defaults to Rider. The explicit launcher selects either Rider or Driver from the nested project:
 
 ```sh
 python3 apps/rides/scripts/start-session.py --role rider --server https://your-demo-server.example

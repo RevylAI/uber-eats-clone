@@ -18,16 +18,18 @@ build:
           - bash scripts/build-ios.sh
         output_path: build/Build/Products/Debug-iphonesimulator/EatsClone.app
         timeout_seconds: 1800
-    rides:
-      ios:
-        app_id: 1f375e45-bf9b-434a-b939-a8892a2297c3
-        build_commands:
-          - bash apps/rides/scripts/build-ios.sh
-        output_path: apps/rides/build/Build/Products/Debug-iphonesimulator/RidesDemo.app
-        timeout_seconds: 1800
 pr_review:
   enabled: true
   review_triggers:
+    paths:
+      - EatsClone/**
+      - Resources/**
+      - scripts/**
+      - project.yml
+      - Package.swift
+      - .revyl/**
+      - .github/workflows/ios.yml
+      - .github/workflows/revyl.yml
     drafts: false
   build:
     kind: revyl

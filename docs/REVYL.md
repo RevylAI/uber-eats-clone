@@ -4,6 +4,8 @@
 
 The `pull-request` build profile runs the same `scripts/build-ios.sh` used for cloud compilation and core tests. Revyl builds a Debug iOS simulator app, then its proof agent exercises the changed behavior plus the declared ordering and navigation invariants. GitHub Actions independently runs `scripts/verify-ios.sh`. Neither path submits real orders or payments.
 
+Rides has a separate Revyl project rooted at `apps/rides`, configured by `apps/rides/.revyl/config.yaml`. It has its own app ID, session hook, `rides` build profile, path triggers, and Proof of Changes instructions. The root config now contains only Eats. Use `revyl -C apps/rides config validate` and `revyl -C apps/rides build --profile rides --platform ios` for Rides, rather than selecting a Rides profile at the repository root. See the [Rides setup](RIDES.md) for the two-phone service requirements and proof boundaries. These are two Revyl project roots in one repository, not separate repositories or Capy projects.
+
 The build also inspects the packaged app's URL schemes and fails if `eatsclone` is missing. XcodeGen writes its app plist under `.generated/`, separate from the `build/Info.plist` metadata that Xcode creates for Derived Data.
 
 ## Test-only session contract
@@ -32,6 +34,12 @@ revyl github status --json
 ```
 
 The repository should report `access_granted: true` and project `status: enabled`. For a manually managed project, `revyl config push` publishes edits. Once the config is reconciled from the default branch, Git becomes authoritative: validate and commit subsequent configuration changes instead of manually publishing over it.
+
+`Revyl setup` CI checks the configs select different projects and apps, recipes and session hooks resolve relative to their own roots, tokens are fresh and isolated, both proof policies are enabled, and runtime session files remain ignored. Run it locally with Python and `PyYAML==6.0.3` installed:
+
+```sh
+python scripts/test_revyl_config.py
+```
 
 After a preview build is ready, start a fresh session against its version:
 

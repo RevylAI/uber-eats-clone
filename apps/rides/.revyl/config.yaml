@@ -1,0 +1,46 @@
+project:
+  id: b13e33ff-5c8d-490e-bb24-9ef1d4c06bba
+session:
+  idle_timeout_seconds: 1800
+  before_script:
+    script_path: ./scripts/prepare-revyl-session.py
+    timeout_seconds: 30
+  auth_bypass:
+    launch_vars: [RIDES_AUTH_BYPASS_ENABLED, RIDES_AUTH_BYPASS_TOKEN]
+    deep_link: "ridesdemo://revyl-auth?token=${RIDES_AUTH_BYPASS_TOKEN}&role=rider&redirect=/home"
+build:
+  framework: ios
+  profiles:
+    rides:
+      ios:
+        app_id: 1f375e45-bf9b-434a-b939-a8892a2297c3
+        build_commands:
+          - bash scripts/build-ios.sh
+        output_path: build/Build/Products/Debug-iphonesimulator/RidesDemo.app
+        timeout_seconds: 1800
+pr_review:
+  enabled: true
+  review_triggers:
+    paths:
+      - apps/rides/**
+      - services/ride-demo/**
+      - docs/RIDES.md
+      - docs/RIDES_VERIFICATION.md
+      - .github/workflows/rides.yml
+      - .github/workflows/revyl.yml
+      - scripts/test_revyl_config.py
+    drafts: false
+  build:
+    kind: revyl
+    profile: rides
+  proof_of_changes:
+    enabled: true
+    harness:
+      kind: revyl
+    always_verify:
+      - A fresh Rides session opens Home with the Revyl sign-in accepted Rider banner, without opening Eats or asking for real authentication.
+      - Open Where to, select an offline destination, choose a vehicle and payment label, and reach Confirm your pickup. Without a configured demo server, Connect to request a ride opens Demo connection rather than inventing a driver, trip, or charge. Do not enter real payment information.
+      - Dismiss the connection and booking sheets, then verify Home, Services, Activity, and Account remain reachable. Open saved places and wallet from Account using only demo data.
+      - Two-phone dispatch, chat, completion, and cancellation require a shared reachable HTTPS service and a second phone. Do not report those behaviors as passed from this single-phone proof.
+  strict_ci_check:
+    build: true

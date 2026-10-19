@@ -36,7 +36,7 @@ if args.server:
 if args.room:
     command += ["--launch-env", "RIDE_DEMO_ROOM_CODE=" + args.room.upper()]
 
-root = Path(__file__).resolve().parents[3]
+root = Path(__file__).resolve().parents[1]
 result = subprocess.run(command, cwd=root, capture_output=True, text=True)
 if result.returncode:
     print("Revyl could not start the rides session. Raw output is withheld because it may contain launch credentials. Inspect device availability with `revyl device list`.", file=sys.stderr)

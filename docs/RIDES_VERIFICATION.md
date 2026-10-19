@@ -7,7 +7,7 @@ Verified on October 18, 2026. No real ride, charge, call, or location tracking i
 - [Native simulator CI](https://github.com/RevylAI/uber-eats-clone/actions/runs/39191580033/job/117865343290) at `7c4fa9d` passed: 16 Swift core tests in Debug, 16 in Release, then **17 iOS XCTest cases**, including `testSimulatorKeychainCanSaveRestoreUpdateAndClearSession`. The log ends with `TEST EXECUTE SUCCEEDED`; this is executed simulator testing, not just `build-for-testing`.
 - Six Node 24 HTTP integration tests pass. Coverage includes cross-client lifecycle, exclusive concurrent acceptance, idempotency, invitation/room isolation, assignment and role enforcement, chat/cancellation rules, schedule/route validation, and SQLite restart persistence.
 - The repository-root `rides` build succeeded for app `1f375e45-bf9b-434a-b939-a8892a2297c3`: job `42e5b4e7-4482-4422-8e66-ce2909d27bc3`, version `94a524ee-0761-44a2-83de-f39cffeecc4f`. The recipe tests the core, compiles the app/test bundle, checks the packaged URL scheme, and verifies its ad-hoc signature.
-- Both root profiles pass connected `revyl config validate`. Main-managed publication remains unchanged until the configuration PR merges. Eats code and default sign-in settings are unchanged; its existing iOS check also passed on this PR.
+- The original two-profile root configuration passed connected validation. Setup now uses independent project configs: root Eats and nested `apps/rides`. Both pass connected validation; the nested Rides project is published with independent PR automation, and the root remains Git-managed. Eats app code and buyer sign-in are unchanged.
 
 ## Native paired-phone behavior
 
@@ -31,4 +31,4 @@ Screenshots of the actual native home, paired acceptance, shared chat, and recei
 - The verification server is a temporary HTTPS workspace preview. Persistent demos require a separately hosted instance with durable SQLite storage; restarting or sleeping the workspace is not permanent hosting.
 - Disabled-gate, malformed-link, unauthorized-role/route, and production rejection are covered by core tests. Only accepted rider/driver roles and wrong-token rejection were additionally exercised on phones.
 - The full version-pinned Uber reference inventory and exhaustive parity have not been established. The driver dashboard is an original companion, and several real Uber products/integrations are intentionally absent; see [scope and setup](RIDES.md).
-- Automatic Revyl Proof of Changes still targets Eats. Adding the independent rides build profile does not establish automated two-phone proof generation.
+- Automatic Revyl Proof of Changes is configured separately for Eats and Rides. Rides proof covers Rider sign-in, offline booking and navigation, and the required-connection boundary. A configured policy is not a completed proof, and this single-phone policy does not establish automated two-phone proof generation.
