@@ -97,7 +97,7 @@ struct RiderHomeView: View {
                             .frame(minWidth: 44, minHeight: 44)
                             .accessibilityLabel("See all ride services")
                     }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 10)], spacing: 12) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 12) {
                         Button { store.beginBooking() } label: { shortcut("Ride", service: .uberX) }
                         Button { store.beginBooking(reserve: true) } label: { shortcut("Reserve", icon: "calendar") }
                         Button { store.beginBooking(); store.draft.service = .comfort } label: { shortcut("Comfort", service: .comfort) }
@@ -152,7 +152,7 @@ struct RiderHomeView: View {
         VStack(spacing: 8) {
             Group {
                 if let service {
-                    RideCarArt(service: service).scaleEffect(0.7)
+                    RideCarArt(service: service).scaleEffect(0.7).frame(width: 60, height: 42)
                 } else {
                     Image(systemName: icon).font(.system(size: 26, weight: .medium)).accessibilityHidden(true)
                 }

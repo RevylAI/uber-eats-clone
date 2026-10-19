@@ -40,7 +40,7 @@ struct RideCarArt: View {
 
 struct DemoMapView: View {
     var route = true
-    var status: TripStatus = .requested
+    var status: TripStatus? = nil
     var pickup: DemoPlace = RideCatalog.places[0]
     var destination: DemoPlace = RideCatalog.places[1]
     var stops: [DemoPlace] = []
@@ -77,6 +77,7 @@ struct DemoMapView: View {
             }
         }
         .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 28) }
         .id(route ? routePlaces.map(\.id).joined(separator: "-") : pickup.id)
         .overlay(alignment: .topTrailing) {
             if route {
@@ -86,7 +87,7 @@ struct DemoMapView: View {
             }
         }
         .clipped().accessibilityElement(children: .contain)
-        .accessibilityLabel(route ? "\(status.title). Route preview from \(pickup.name) to \(destination.name). Straight-line connections, not driving directions or live vehicle tracking." : "Map of Austin. Live vehicle tracking is unavailable.")
+        .accessibilityLabel(route ? (status.map { $0.title + ". " } ?? "") + "Route preview from \(pickup.name) to \(destination.name). Straight-line connections, not driving directions or live vehicle tracking." : "Map of Austin. Live vehicle tracking is unavailable.")
     }
 }
 
