@@ -24,7 +24,6 @@ struct RootView: View {
             CartNavigation { OrdersView() }.tabItem { Label("Orders", systemImage: "receipt") }.tag(2)
             CartNavigation { AccountView() }.tabItem { Label("Account", systemImage: "person.crop.circle") }.tag(3)
         }
-        .safeAreaInset(edge: .top) { RevylSessionBanner() }
         .onChange(of: store.navigationResetID) { showTracking = false }
         .sheet(isPresented: $store.showCart, onDismiss: {
             if store.activeOrderID != nil { showTracking = true }
@@ -35,7 +34,10 @@ struct RootView: View {
             }
         }
         .fullScreenCover(isPresented: Binding(get: { !store.snapshot.onboarded }, set: { if !$0 { store.snapshot.onboarded = true } })) {
-            WelcomeView().environmentObject(store).safeAreaInset(edge: .top) { RevylSessionBanner() }
+            VStack(spacing: 0) {
+                RevylSessionBanner()
+                WelcomeView()
+            }.environmentObject(store)
         }
     }
 }
@@ -62,21 +64,24 @@ struct CartNavigation<Content: View>: View {
     @EnvironmentObject private var store: AppStore
     @ViewBuilder var content: () -> Content
     var body: some View {
-        NavigationStack { content() }
-            .id(store.navigationResetID)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !store.cart.isEmpty {
-                    Button { store.showCart = true } label: {
-                        HStack {
-                            Text("\(store.cartCount)").font(.subheadline.bold()).padding(7).background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
-                            Spacer()
-                            Text("View cart").font(.headline)
-                            Spacer()
-                            Text(store.subtotal.money).font(.subheadline.bold())
-                        }.foregroundStyle(.white).padding(12).background(.black, in: RoundedRectangle(cornerRadius: 12))
-                    }.padding(.horizontal, 16).padding(.vertical, 6).background(.white)
+        VStack(spacing: 0) {
+            RevylSessionBanner()
+            NavigationStack { content() }
+                .id(store.navigationResetID)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if !store.cart.isEmpty {
+                        Button { store.showCart = true } label: {
+                            HStack {
+                                Text("\(store.cartCount)").font(.subheadline.bold()).padding(7).background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
+                                Spacer()
+                                Text("View cart").font(.headline)
+                                Spacer()
+                                Text(store.subtotal.money).font(.subheadline.bold())
+                            }.foregroundStyle(.white).padding(12).background(.black, in: RoundedRectangle(cornerRadius: 12))
+                        }.padding(.horizontal, 16).padding(.vertical, 6).background(.white)
+                    }
                 }
-            }
+        }
     }
 }
 

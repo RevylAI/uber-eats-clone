@@ -4,6 +4,8 @@
 
 The `pull-request` build profile runs the same `scripts/build-ios.sh` used for cloud compilation and core tests. Revyl builds a Debug iOS simulator app, then its proof agent exercises the changed behavior plus the declared ordering and navigation invariants. GitHub Actions independently runs `scripts/verify-ios.sh`. Neither path submits real orders or payments.
 
+The build also inspects the packaged app's URL schemes and fails if `eatsclone` is missing. XcodeGen writes its app plist under `.generated/`, separate from the `build/Info.plist` metadata that Xcode creates for Derived Data.
+
 ## Test-only session contract
 
 Debug builds accept this custom URL only when the session explicitly enables the gate and supplies its matching, at-least-32-character token:
@@ -39,6 +41,8 @@ revyl device screenshot --out <screenshot-path>
 ```
 
 The Home tab should appear without onboarding, with `Revyl sign-in accepted · Local buyer` visible. A wrong-token URL must show a rejected status and must not change the selected destination. `revyl dev auth refresh` reapplies the original valid session link. Restart the session to change boot launch variables; refreshing does not remint or alter them.
+
+After replacing the app binary in a running raw device session, start a fresh prepared session rather than relying on install followed by refresh. The replacement app can launch without the old boot variables and correctly reject the link as disabled.
 
 The regression tests cover allowed routes, environment and iOS arguments, production and missing/disabled gates, absent/short/wrong tokens, forbidden roles and destinations, duplicate parameters, ignored URLs, rejected-state preservation, and normal persistence after acceptance. Run both Debug and Release core tests on a Mac to exercise compile-time exclusion:
 

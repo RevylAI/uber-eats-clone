@@ -22,7 +22,7 @@ xcodebuild \
 
 The build command compiles for the simulator; it does not launch the app. Open `EatsClone.xcodeproj`, select the `EatsClone` scheme and an available iOS simulator, then choose Run. `project.yml` is the XcodeGen project definition. No API keys, backend server, or account are needed for the demo.
 
-The Revyl cloud build and 10 store tests passed on 2026-10-18. See [verification evidence and its limits](docs/VERIFICATION.md); compilation alone does not establish UI or full feature parity.
+The Revyl cloud build and 20 core tests passed on 2026-10-18. Test-only sign-in was also exercised on a cloud iPhone. See [verification evidence and its limits](docs/VERIFICATION.md); these checks do not establish full feature parity or a completed automatic PR proof.
 
 `bash scripts/build-ios.sh` runs the store tests on macOS using Swift Package Manager and compiles the iOS app and test bundle without requiring a booted simulator. `bash scripts/verify-ios.sh` also runs the iOS test bundle on an installed iPhone simulator; GitHub Actions uses that command.
 
