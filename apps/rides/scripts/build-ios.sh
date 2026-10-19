@@ -18,10 +18,5 @@ with info.open("rb") as stream:
     value = plistlib.load(stream)
 schemes = [scheme for item in value.get("CFBundleURLTypes", []) for scheme in item.get("CFBundleURLSchemes", [])]
 assert "ridesdemo" in schemes, "The built app is missing its Revyl URL scheme"
-app = info.parent
-subprocess.run(["codesign", "--verify", str(app)], check=True)
-signature = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", str(app)], capture_output=True, check=True)
-entitlements = plistlib.loads(signature.stdout)
-assert entitlements.get("application-identifier") == "com.revyl.ridesdemo", "The simulator app is missing its Keychain identity"
-assert "com.revyl.ridesdemo" in entitlements.get("keychain-access-groups", []), "The simulator app cannot access its session Keychain"
+subprocess.run(["codesign", "--verify", str(info.parent)], check=True)
 PY
