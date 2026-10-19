@@ -19,103 +19,114 @@ struct AccountSignInView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                Text("Rides").font(.system(size: 28, weight: .bold)).tracking(-1).padding(.top, 16)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(creating ? "Create your account" : "Welcome back")
-                        .font(.system(size: 32, weight: .bold)).tracking(-0.8)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(creating ? "A few details, then you're ready to go." : "Sign in to ride or get back on the road.")
-                        .font(.system(size: 16)).foregroundStyle(.secondary)
-                }
-                VStack(alignment: .leading, spacing: 20) {
-                    if creating {
-                        field("Full name", id: .name) {
-                            TextField("Your full name", text: $name)
-                                .textContentType(.name).textInputAutocapitalization(.words)
-                                .focused($focusedField, equals: .name).submitLabel(.next)
-                                .onSubmit { focusedField = .email }
-                                .accessibilityIdentifier("auth.name")
-                        }
-                    }
-                    field("Email address", id: .email) {
-                        TextField("name@example.com", text: $email)
-                            .keyboardType(.emailAddress).textContentType(creating ? .emailAddress : .username)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .focused($focusedField, equals: .email).submitLabel(.next)
-                            .onSubmit { focusedField = .password }
-                            .accessibilityIdentifier("auth.email")
-                    }
-                    field("Password", id: .password) {
-                        HStack(spacing: 12) {
-                            Group {
-                                if showPassword { TextField("Enter your password", text: $password) }
-                                else { SecureField("Enter your password", text: $password) }
-                            }
-                            .textContentType(creating ? .newPassword : .password)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .focused($focusedField, equals: .password)
-                            .submitLabel(creating && role == .driver ? .next : .go)
-                            .onSubmit {
-                                if creating && role == .driver { focusedField = .vehicle }
-                                else { submit() }
-                            }
-                            .accessibilityIdentifier("auth.password")
-                            Button {
-                                showPassword.toggle()
-                                focusedField = .password
-                            } label: {
-                                Image(systemName: showPassword ? "eye.slash" : "eye")
-                                    .font(.system(size: 18)).foregroundStyle(.secondary)
-                                    .frame(width: 32, height: 32).contentShape(Rectangle())
-                            }
-                            .accessibilityLabel(showPassword ? "Hide password" : "Show password")
-                            .accessibilityIdentifier("auth.togglePassword")
-                        }
-                    }
-                    if creating {
+        GeometryReader { geometry in
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        Text("Rides").font(.system(size: 28, weight: .bold)).tracking(-1).padding(.top, 16)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("How will you use Rides?").font(.system(size: 14, weight: .semibold))
-                            Picker("Account type", selection: $role) {
-                                Text("Ride").tag(DemoRole.rider)
-                                Text("Drive").tag(DemoRole.driver)
-                            }.pickerStyle(.segmented).accessibilityIdentifier("auth.role")
-                            Text("Your account type can't be changed after signup.")
-                                .font(.system(size: 13)).foregroundStyle(.secondary)
+                            Text(creating ? "Create your account" : "Welcome back")
+                                .font(.system(size: 32, weight: .bold)).tracking(-0.8)
+                                .accessibilityAddTraits(.isHeader)
+                            Text(creating ? "A few details, then you're ready to go." : "Sign in to ride or get back on the road.")
+                                .font(.system(size: 16)).foregroundStyle(.secondary)
                         }
-                        if role == .driver {
-                            field("Vehicle", id: .vehicle) {
-                                TextField("Make, model and color", text: $vehicle)
-                                    .focused($focusedField, equals: .vehicle).submitLabel(.next)
-                                    .onSubmit { focusedField = .plate }
-                                    .accessibilityIdentifier("auth.vehicle")
+                        VStack(alignment: .leading, spacing: 20) {
+                            if creating {
+                                field("Full name", id: .name) {
+                                    TextField("Your full name", text: $name)
+                                        .textContentType(.name).textInputAutocapitalization(.words)
+                                        .focused($focusedField, equals: .name).submitLabel(.next)
+                                        .onSubmit { focusedField = .email }
+                                        .accessibilityIdentifier("auth.name")
+                                }
                             }
-                            field("License plate", id: .plate) {
-                                TextField("License plate", text: $plate)
-                                    .textInputAutocapitalization(.characters).autocorrectionDisabled()
-                                    .focused($focusedField, equals: .plate).submitLabel(.go)
-                                    .onSubmit { submit() }.accessibilityIdentifier("auth.plate")
+                            field("Email address", id: .email) {
+                                TextField("name@example.com", text: $email)
+                                    .keyboardType(.emailAddress).textContentType(creating ? .emailAddress : .username)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .focused($focusedField, equals: .email).submitLabel(.next)
+                                    .onSubmit { focusedField = .password }
+                                    .accessibilityIdentifier("auth.email")
                             }
+                            field("Password", id: .password) {
+                                HStack(spacing: 12) {
+                                    Group {
+                                        if showPassword { TextField("Enter your password", text: $password) }
+                                        else { SecureField("Enter your password", text: $password) }
+                                    }
+                                    .textContentType(creating ? .newPassword : .password)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .focused($focusedField, equals: .password)
+                                    .submitLabel(creating && role == .driver ? .next : .go)
+                                    .onSubmit {
+                                        if creating && role == .driver { focusedField = .vehicle }
+                                        else { submit() }
+                                    }
+                                    .accessibilityIdentifier("auth.password")
+                                    Button {
+                                        showPassword.toggle()
+                                        focusedField = .password
+                                    } label: {
+                                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                                            .font(.system(size: 18)).foregroundStyle(.secondary)
+                                            .frame(width: 32, height: 32).contentShape(Rectangle())
+                                    }
+                                    .accessibilityLabel(showPassword ? "Hide password" : "Show password")
+                                    .accessibilityIdentifier("auth.togglePassword")
+                                }
+                            }
+                            if creating {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("How will you use Rides?").font(.system(size: 14, weight: .semibold))
+                                    Picker("Account type", selection: $role) {
+                                        Text("Ride").tag(DemoRole.rider)
+                                        Text("Drive").tag(DemoRole.driver)
+                                    }.pickerStyle(.segmented).accessibilityIdentifier("auth.role")
+                                    Text("Your account type can't be changed after signup.")
+                                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                                }
+                                if role == .driver {
+                                    field("Vehicle", id: .vehicle) {
+                                        TextField("Make, model and color", text: $vehicle)
+                                            .focused($focusedField, equals: .vehicle).submitLabel(.next)
+                                            .onSubmit { focusedField = .plate }
+                                            .accessibilityIdentifier("auth.vehicle")
+                                    }
+                                    field("License plate", id: .plate) {
+                                        TextField("License plate", text: $plate)
+                                            .textInputAutocapitalization(.characters).autocorrectionDisabled()
+                                            .focused($focusedField, equals: .plate).submitLabel(.go)
+                                            .onSubmit { submit() }.accessibilityIdentifier("auth.plate")
+                                    }
+                                }
+                            }
+                        }.disabled(store.busy)
+                        if let error = store.errorMessage {
+                            Label(error, systemImage: "exclamationmark.circle.fill")
+                                .font(.system(size: 14)).foregroundStyle(.red)
+                                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.red.opacity(0.06)).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .accessibilityIdentifier("auth.error")
+                        }
+                        if creating {
+                            Text("Email recovery and independent driver verification aren't available yet.")
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                     }
-                }.disabled(store.busy)
-                if let error = store.errorMessage {
-                    Label(error, systemImage: "exclamationmark.circle.fill")
-                        .font(.system(size: 14)).foregroundStyle(.red)
-                        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.red.opacity(0.06)).clipShape(RoundedRectangle(cornerRadius: 12))
-                        .accessibilityIdentifier("auth.error")
+                    .padding(.horizontal, 24).padding(.bottom, 24)
+                    .frame(maxWidth: 520).frame(maxWidth: .infinity, alignment: .top)
                 }
-                if creating {
-                    Text("Email recovery and independent driver verification aren't available yet.")
-                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: focusedField) { previous, _ in
+                    if let previous { touched.insert(previous) }
+                    revealFocusedField(in: scroll)
                 }
+                .onChange(of: geometry.size.height) { _, _ in revealFocusedField(in: scroll) }
+                .onChange(of: errors) { _, _ in revealFocusedField(in: scroll) }
             }
-            .padding(.horizontal, 24).padding(.bottom, 24)
-            .frame(maxWidth: 520).frame(maxWidth: .infinity, alignment: .top)
         }
-        .background(.white).scrollDismissesKeyboard(.interactively)
+        .background(.white).tint(.black)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 16) {
                 RidePrimaryButton(title: creating ? "Create account" : "Sign in", busy: store.busy, action: submit)
@@ -141,9 +152,6 @@ struct AccountSignInView: View {
             .frame(maxWidth: 520).frame(maxWidth: .infinity)
             .background(.white).overlay(alignment: .top) { Divider() }
         }
-        .onChange(of: focusedField) { previous, _ in
-            if let previous { touched.insert(previous) }
-        }
         .onChange(of: email) { _, _ in store.errorMessage = nil }
         .onChange(of: password) { _, _ in store.errorMessage = nil }
     }
@@ -165,7 +173,12 @@ struct AccountSignInView: View {
                     .font(.system(size: 13)).foregroundStyle(.red)
                     .accessibilityIdentifier("auth.\(id).error")
             }
-        }
+        }.id(id)
+    }
+
+    private func revealFocusedField(in scroll: ScrollViewProxy) {
+        guard let focusedField else { return }
+        withAnimation { scroll.scrollTo(focusedField, anchor: .center) }
     }
 
     private func submit() {
