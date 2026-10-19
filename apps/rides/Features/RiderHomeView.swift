@@ -7,10 +7,8 @@ struct RiderHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Uber").font(.system(size: 38, weight: .medium)).tracking(-2)
-                    Text("DEMO").font(.system(size: 9, weight: .bold)).tracking(1).padding(.horizontal, 7).padding(.vertical, 4).background(RideStyle.soft).clipShape(Capsule())
+                    Text("Rides").font(.system(size: 38, weight: .medium)).tracking(-2)
                     Spacer()
-                    DemoConnectionBadge()
                 }.padding(.top, 6)
                 HStack(spacing: 0) {
                     VStack(spacing: 12) {
@@ -69,10 +67,9 @@ struct RiderHomeView: View {
                         Spacer()
                     }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                Text("Independent ride demo · No real rides or charges").font(.caption2).foregroundStyle(.secondary).padding(.bottom, 12)
             }.padding(.horizontal, 20)
         }.background(.white)
-            .alert("Eats is a separate app", isPresented: $eatsInfo) { Button("OK", role: .cancel) {} } message: { Text("The Eats demo is unchanged in this repository. Install the EatsClone target to switch to it from here.") }
+            .alert("Eats isn't installed", isPresented: $eatsInfo) { Button("OK", role: .cancel) {} } message: { Text("Install Eats to open it from here.") }
     }
 
     private func suggestion(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
@@ -92,9 +89,9 @@ struct RideServicesView: View {
             VStack(alignment: .leading, spacing: 22) {
                 Text(store.role == .driver ? "Earnings" : "Services").font(.system(size: 32, weight: .bold)).padding(.top, 12)
                 if store.role == .driver {
-                    Text("Your demo earnings").font(.headline)
+                    Text("Recent trip totals").font(.headline)
                     Text(RideCatalog.money(store.earningsCents)).font(.system(size: 46, weight: .bold))
-                    Text("Completed rides assigned to you, including demo tips. No money is transferred.").foregroundStyle(.secondary)
+                    Text("Recorded totals for your completed rides. Payouts are unavailable.").foregroundStyle(.secondary)
                     ForEach(store.pastTrips.filter { $0.status == .completed && $0.driver?.id == store.credentials?.participantId }) { trip in
                         HStack { VStack(alignment: .leading) { Text(trip.destination.name).font(.headline); Text(RideCatalog.date(trip.createdAt)).font(.caption).foregroundStyle(.secondary) }; Spacer(); Text(RideCatalog.money(trip.totalCents)).fontWeight(.semibold) }.padding(.vertical, 10)
                         Divider()
@@ -113,7 +110,6 @@ struct RideServicesView: View {
                         }
                     }
                     Button { store.beginBooking(reserve: true) } label: { Label("Reserve a ride", systemImage: "calendar.badge.clock").font(.headline).frame(maxWidth: .infinity, alignment: .leading).padding(20).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 12)) }.foregroundStyle(.black)
-                    Text("Bikes, rentals, group invitations, and deliveries aren't part of this ride demo.").font(.footnote).foregroundStyle(.secondary)
                 }
             }.padding(20)
         }.navigationBarTitleDisplayMode(.inline)

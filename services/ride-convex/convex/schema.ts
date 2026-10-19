@@ -26,6 +26,23 @@ export const trip = v.object({
 });
 
 export default defineSchema({
+  users: defineTable({
+    name: v.string(), email: v.string(), role, passwordSalt: v.string(), passwordHash: v.string(),
+    vehicle: v.union(v.string(), v.null()), plate: v.union(v.string(), v.null()),
+    serviceArea: v.string(), online: v.boolean(),
+    activeTripId: v.union(v.id("dispatchTrips"), v.null()),
+    loginWindowStart: v.number(), loginAttempts: v.number(),
+  }).index("by_email", ["email"]).index("by_area_role_online", ["serviceArea", "role", "online"]),
+  sessions: defineTable({
+    userId: v.id("users"), tokenHash: v.string(), expiresAt: v.number(),
+  }).index("by_hash", ["tokenHash"]),
+  dispatchAreas: defineTable({ name: v.string(), revision: v.number() }).index("by_name", ["name"]),
+  dispatchTrips: defineTable({
+    riderId: v.id("users"), driverId: v.union(v.id("users"), v.null()), serviceArea: v.string(),
+    status: v.string(), requestId: v.string(), requestPayload: v.string(), payload: trip,
+  }).index("by_rider", ["riderId"]).index("by_driver", ["driverId"])
+    .index("by_area_status", ["serviceArea", "status"])
+    .index("by_rider_request", ["riderId", "requestId"]).index("by_trip_id", ["payload.id"]),
   rooms: defineTable({
     code: v.string(), riderId: v.string(), revision: v.number(), expiresAt: v.number(),
     activeTripId: v.union(v.id("trips"), v.null()),

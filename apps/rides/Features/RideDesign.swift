@@ -92,22 +92,8 @@ struct DemoMapView: View {
                     .font(.system(size: 28)).foregroundStyle(.black)
                     .rotationEffect(.degrees(status == .inProgress ? 100 : 20))
                     .position(x: geometry.size.width * (status == .arriving ? 0.30 : status == .inProgress ? 0.64 : 0.52), y: geometry.size.height * (status == .arriving ? 0.30 : 0.60))
-                VStack { Spacer(); HStack { Spacer(); Text("Simulated map · Austin").font(.system(size: 8)).foregroundStyle(.secondary).padding(6).background(.white.opacity(0.8)) } }
             }
-        }.clipped().accessibilityLabel("Simulated Austin map\(route ? " with pickup and destination route" : "")")
-    }
-}
-
-struct DemoConnectionBadge: View {
-    @EnvironmentObject private var store: RideStore
-    var body: some View {
-        Button { store.showConnection = true } label: {
-            HStack(spacing: 5) {
-                Circle().fill(store.connected && store.syncIsFresh ? RideStyle.green : Color.gray).frame(width: 6, height: 6)
-                Text(store.connected ? "Live demo · \(store.role.title)" : "Connect two-phone demo")
-                Image(systemName: "slider.horizontal.3")
-            }.font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
-        }.accessibilityIdentifier("demo.connection")
+        }.clipped().accessibilityElement(children: .ignore).accessibilityLabel(route ? "Austin route" : "Austin map")
     }
 }
 
@@ -149,7 +135,6 @@ struct RideInfoView: View {
                 Image(systemName: icon).font(.system(size: 44)).padding(.top, 20)
                 Text(title).font(.largeTitle.bold())
                 Text(text).font(.body).foregroundStyle(.secondary)
-                Text("Independent demo. No real trips, payments, calls, or emergency services are provided.").font(.footnote).padding(16).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 12))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(20)
         }.navigationTitle(title).navigationBarTitleDisplayMode(.inline)
     }

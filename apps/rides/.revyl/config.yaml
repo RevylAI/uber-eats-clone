@@ -40,10 +40,9 @@ pr_review:
       kind: revyl
     always_verify:
       - "Scope this proof to the Rides application selected by this project's rides profile. Verify all applicable Rides changes and the checks below, and report any observed Rides defect. Eats has its own root project, build, session, and proof at .revyl/config.yaml. Do not require Eats ordering screens inside the Rides binary; they belong to the separate Eats proof, not an unmet Rides verification requirement."
-      - A fresh Rides session opens Home with the Revyl sign-in accepted Rider banner, without opening Eats or asking for real authentication.
-      - The hosted Convex backend is prefilled in Demo connection. Create a new private Rider room, then Continue as Rider. Keep invitations hidden and never include invitation codes, session tokens, or credentials in public evidence.
-      - Open Where to, select an offline destination, choose a vehicle and demo payment label, and confirm pickup. Verify the hosted request reaches Finding your ride; without a second online driver it must not invent an acceptance or charge. Cancel the requested trip and verify a zero-charge Cancelled history entry. Do not enter real payment information.
-      - Home, Services, Activity, and Account remain reachable after the cancellation. Open saved places and wallet from Account using only demo data.
-      - Driver acceptance, two-way chat, arrival, start, completion, receipts, rating, and tips require a second Rides phone joined to the same private room. Do not report those paired behaviors as passed from this single-phone proof.
+      - A fresh Rides session opens the normal Rider Home signed into a newly registered Convex database account. The session hook supplies its real account session; no connection screen, invitation, role switch, or test banner should be visible. Never publish account session tokens, launch values, passwords, or credentials.
+      - Open Where to, select a destination, choose a vehicle and payment preference, and confirm pickup. Verify the hosted request reaches Finding your ride; without a second online driver it must not invent an acceptance or charge. Cancel the request and verify a zero-charge Cancelled history entry. Do not enter real payment information.
+      - Home, Services, Activity, and Account remain reachable after cancellation. Account must show the registered profile. Open saved places and wallet; payments, payouts, live GPS, and driver verification are unavailable and must not be reported as working integrations.
+      - Driver acceptance, two-way chat, arrival, start, completion, receipts, rating, and tip preferences require a second Rides phone signed into a separate real database driver account in the same isolated service area. Do not report paired behaviors as passed from this single-phone proof.
   strict_ci_check:
     build: true

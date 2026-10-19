@@ -2,6 +2,24 @@
 
 No real ride, charge, call, or location tracking is performed.
 
+## Account-backed follow-up — October 19, 2026
+
+The current follow-up replaces the invitation UI with database-backed registration, sign-in, persisted profiles, and sign-out. It removes customer-facing demo language, pairing controls, fixed profile ratings and wallet balances, and visible Revyl banners. New account dispatch is separate from the legacy room API described below, which remains compatible for older clients.
+
+The integrated backend passes 120 tests, including all 45 legacy cases and six new nullable-registration regressions, and npm audit reports no vulnerabilities. TypeScript checking and the production deploy dry run pass. Six configuration-isolation tests and eight account-session setup tests also pass. These local/transaction checks are separate from the production checks below.
+
+The existing `landseer-enga/uber-clone` production service now includes the account and dispatch functions, tables, and indexes. Seven independent multi-client checks against production passed registration/password login, immutable roles and revocation, WebSocket updates, authoritative fares and idempotency, exclusive assignment, isolation/restoration, shared chat and lifecycle, rating/tip preferences, cancellation, and sign-out.
+
+At `ed6a977`, [Rides iOS CI](https://github.com/RevylAI/uber-eats-clone/actions/runs/39307062166/job/118246771615) executed 51 Swift core tests in Debug, 47 in Release, and 52 arm64 iOS simulator XCTest cases, including the Keychain save/restore/update/clear test. The log ends with `TEST EXECUTE SUCCEEDED`. The earlier Uber-account build runner compiled the test bundle but lacked a simulator runtime; it is not counted as an executed test run. Later changes affect backend nullable signup handling, generated bindings, the session launcher, and this verification record rather than native Swift code.
+
+Uber-account native app build `30497455-5e81-4acf-bc28-5b277425095b` ran on two separate iOS sessions against real production database users. The rider requested the $18.40 route, the driver received and accepted it, both phones cold-launched and restored their account/assignment, and both chat directions synchronized. Arrival, start, completion, five stars, and a $3 tip preference persisted; both clients recorded $21.40. Rebooking and cancellation removed the driver's pending offer. No room invitation or pairing UI was used, and the normal home, sign-in, driver, chat, and receipt screens have no demo or test banners.
+
+Ordinary native rider signup initially reproduced `Invalid vehicle`: the Swift SDK serializes absent optional fields as JSON null, but the action accepted only omitted fields. The deployed fix treats null vehicle/plate values as absent while retaining the driver's required-vehicle validation. The same native registration then succeeded, restored after a cold launch, signed out, and signed back in with its actual password. Both verification phones were signed out and released, with the original driver offline. Public-safe screenshots are attached to PR #4; credentials, launch values, and private account emails are excluded.
+
+Uber API access and its existing Eats/Rides app containers are verified with the separate `REVYL_UBER_API_KEY`. GitHub repository authorization/project discovery in that account is still blocked; existing repository configs and the original API key have not been migrated or replaced. Verify that any customer-account association cannot expose other repositories through the existing RevylAI installation or change Benchmarks ownership. Do not treat a successful manual app build or paired manual verification as completed GitHub automation migration or an automatic account Proof of Changes verdict.
+
+The earlier hosted-room PR at `dc03df4c` has now completed its independent single-phone Revyl proof with no defects found in the exercised request/cancellation/navigation flow. That evidence does not verify the new account follow-up or paired behavior.
+
 ## Hosted Convex deployment — October 19, 2026
 
 The existing `landseer-enga/uber-clone` production deployment is `https://harmless-mammoth-742.convex.cloud`. The CLI deployed the schema, seven indexes, and six public ride functions; inspection confirmed `rooms`, `participants`, `credentials`, and `trips` tables. No replacement project was created and no existing project was deleted. The production service does not depend on a workspace process.

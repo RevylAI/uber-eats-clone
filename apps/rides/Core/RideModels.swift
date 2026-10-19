@@ -57,6 +57,14 @@ enum DemoPayment: String, Codable, CaseIterable, Identifiable {
     case cash = "Demo Cash"
     case wallet = "Demo Wallet"
     var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .visa: return "Card"
+        case .cash: return "Cash"
+        case .wallet: return "Wallet"
+        }
+    }
+    static func displayName(_ value: String) -> String { DemoPayment(rawValue: value)?.title ?? value }
     var icon: String { self == .visa ? "creditcard.fill" : self == .cash ? "banknote.fill" : "wallet.pass.fill" }
 }
 
@@ -70,7 +78,7 @@ enum TripStatus: String, Codable {
         case .accepted: return "Your driver is on the way"
         case .arriving: return "Your driver has arrived"
         case .inProgress: return "You're on your way"
-        case .completed: return "Thanks for riding, Alex"
+        case .completed: return "Thanks for riding"
         case .cancelled: return "Your ride was cancelled"
         }
     }
@@ -128,6 +136,24 @@ struct RideRoomState: Codable, Equatable {
     var activeTrip: DemoTrip? { trips.first { $0.status.isActive } }
 }
 
+struct RideAccount: Codable, Equatable {
+    let id: String
+    let name: String
+    let email: String
+    let role: DemoRole
+    let vehicle: String?
+    let plate: String?
+}
+
+struct RideRegistration {
+    let name: String
+    let email: String
+    let password: String
+    let role: DemoRole
+    let vehicle: String?
+    let plate: String?
+}
+
 struct RideSession: Codable, Equatable {
     let roomCode: String
     let participantId: String
@@ -135,6 +161,8 @@ struct RideSession: Codable, Equatable {
     let role: DemoRole
     let name: String
     let state: RideRoomState
+    var account: RideAccount? = nil
+    var expiresAt: Double? = nil
 }
 
 struct StoredRideSession: Codable {
@@ -144,6 +172,8 @@ struct StoredRideSession: Codable {
     let token: String
     let role: DemoRole
     let name: String
+    let account: RideAccount?
+    let expiresAt: Double?
 
     init(_ session: RideSession, baseURL: URL) {
         self.baseURL = baseURL
@@ -152,6 +182,8 @@ struct StoredRideSession: Codable {
         token = session.token
         role = session.role
         name = session.name
+        account = session.account
+        expiresAt = session.expiresAt
     }
 }
 

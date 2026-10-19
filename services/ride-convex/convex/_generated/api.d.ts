@@ -8,6 +8,13 @@
  * @module
  */
 
+import type * as accountActions from "../accountActions.js";
+import type * as accountAuth from "../accountAuth.js";
+import type * as accountStore from "../accountStore.js";
+import type * as accountTypes from "../accountTypes.js";
+import type * as accounts from "../accounts.js";
+import type * as dispatch from "../dispatch.js";
+import type * as dispatchState from "../dispatchState.js";
 import type * as rides from "../rides.js";
 import type * as validation from "../validation.js";
 
@@ -18,6 +25,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountActions: typeof accountActions;
+  accountAuth: typeof accountAuth;
+  accountStore: typeof accountStore;
+  accountTypes: typeof accountTypes;
+  accounts: typeof accounts;
+  dispatch: typeof dispatch;
+  dispatchState: typeof dispatchState;
   rides: typeof rides;
   validation: typeof validation;
 }>;
