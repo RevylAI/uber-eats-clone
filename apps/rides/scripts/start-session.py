@@ -39,8 +39,6 @@ command = [
 if args.build_version_id:
     command += ["--build-version-id", args.build_version_id]
 environment = os.environ.copy()
-if "REVYL_UBER_API_KEY" in environment:
-    environment["REVYL_API_KEY"] = environment["REVYL_UBER_API_KEY"]
 result = subprocess.run(command, cwd=root, env=environment, capture_output=True, text=True)
 if result.returncode:
     print("Revyl could not start the rides session. Raw output is withheld because it may contain launch credentials. Inspect device availability with `revyl device list`.", file=sys.stderr)

@@ -27,22 +27,30 @@ The pinned ConvexMobile 0.8.1 SDK supplies live dispatch subscriptions. Backgrou
 
 Run `revyl config validate` at the repository root and `revyl -C apps/rides config validate` for Rides. Build with `revyl build --profile pull-request --platform ios` or `revyl -C apps/rides build --profile rides --platform ios`. Each root owns its app, session hook, changed-path triggers, and proof policy. A proof never requires the other binary's screens.
 
-The Rides single-phone proof registers a fresh real database rider in a unique test service area. It covers the normal signed-in Home, hosted request, cancellation, history, tabs, and profile. It must not claim driver acceptance, chat, or completion without a second separately registered driver in that same area. Launch variables and account sessions must never appear in public evidence.
+The initial Rides proof device registers a fresh real database rider in a unique test service area. Single-phone checks cover the normal signed-in Home, hosted request, cancellation, history, tabs, and profile. When the diff or PR description requests paired behavior, the native Revyl agent is instructed to provision a rider/driver pair as described below. Driver acceptance, chat, and completion require evidence from both separately registered users in the same area. Launch variables and account sessions must never appear in public evidence.
 
-The Uber Revyl account migration is separate from native account authentication. Until the GitHub connection and project identities are verified, repository configuration remains on its existing Revyl projects. Do not publish a config combining a Benchmarks project ID with an Uber app ID or bypass Git-managed configuration authority. `REVYL_UBER_API_KEY` is separate from the existing `REVYL_API_KEY`; use only a process-scoped override for Uber commands, and never change the original key or credential store. See [Revyl setup](REVYL.md).
+Eats and Rides automation stays in Revyl Benchmarks. The Uber Revyl account is not connected to this GitHub repository, and its proposed migration was cancelled. Session launchers honor the selected `REVYL_API_KEY` or CLI login; the presence of `REVYL_UBER_API_KEY` must not switch accounts. Keep the existing project/app identities and Git-managed configuration authority intact. See [Revyl setup](REVYL.md).
 
 ## Isolated two-user verification
 
 The Debug-only Revyl gate resumes an already registered database account; it does not create a room or grant a role. It requires a separate per-launch gate token plus the real account session, then verifies the server's identity, role, name, and expiration. Release builds ignore the gate.
 
 ```sh
-python3 apps/rides/scripts/start-session.py --role rider --accounts-file ~/.capy/work/rides-pair.json
-python3 apps/rides/scripts/start-session.py --role driver --accounts-file ~/.capy/work/rides-pair.json
+python3 apps/rides/scripts/start-session.py --role rider --accounts-file "$PRIVATE_RUN_DIR/pair.json" --build-version-id "$RIDES_BUILD_VERSION_ID"
+python3 apps/rides/scripts/start-session.py --role driver --accounts-file "$PRIVATE_RUN_DIR/pair.json" --build-version-id "$RIDES_BUILD_VERSION_ID"
 ```
 
-The first call registers distinct rider/driver users through the public account action in one fresh service area and creates a private `0600` file. The second reuses the other user's real session. No admin key is needed. The file contains sensitive sessions, not passwords: keep it outside Git, do not attach it, and delete it after verification. Use a new path for a fresh pair. Without `--accounts-file`, each launch gets an independent account and area, so unrelated proofs cannot match one another. Pass `--build-version-id` to pin a compatible build. The launcher reads the app ID from the nested config, captures raw CLI output, and prints only safe session metadata.
+Set `PRIVATE_RUN_DIR` to a new private directory outside Git for this run, and `RIDES_BUILD_VERSION_ID` to the exact Benchmarks Rides preview build under test. Run the commands in order: the first registers distinct rider/driver users through the public account action in one fresh service area and creates a private `0600` file; the second reuses the other user's real session. No admin key is needed. The file contains sensitive sessions, not passwords: do not attach it or share it across concurrent proofs. Without `--accounts-file`, each launch gets an independent account and area, so unrelated proofs cannot match one another. The launcher reads the app ID from the nested config, captures raw CLI output, and prints only safe session metadata.
 
 The automatic `prepare-revyl-session.py` hook similarly registers a fresh rider and emits launch values only to Revyl's private hook channel. It fails closed without partial output if registration fails. Checkout-less sessions need compatible private launch values; expired account sessions cannot be used as permanent fixtures.
+
+### Paired proof orchestration
+
+Use fresh accounts per proof rather than permanent rider/driver session tokens in organization launch variables. Both phones receive `RIDES_AUTH_BYPASS_ENABLED=true`, an independent random `RIDES_AUTH_BYPASS_TOKEN`, and their own `RIDES_ACCOUNT_SESSION`. Each deep link selects the matching `rider` or `driver` role, which is verified against the database account. Sharing a service area makes the rider's new request discoverable by its paired online driver; it does not fabricate acceptance or bypass assignment rules.
+
+Launch variables alone do not provision a second device. For paired changes, the PR description and Rides proof policy instruct the existing native Revyl agent to run the two launch commands above against the same current PR preview build. These create a new isolated pair rather than trying to match the initial proof rider's unrelated service area. Retain the returned session IDs as distinct actors and explicitly target every operation; for example, `revyl device instruction '<task>' --session-id <id>` and `revyl device validation '<assertion>' --session-id <id>`. Take the driver online through the UI, request as the rider, accept as the driver, and assert that both screens agree. No harness change or unsupported multi-device YAML setting is required by these instructions; whether the native proof agent can execute them must be demonstrated by the actual run. If another device cannot be provisioned or targeted, record the attempted operation and concrete error. A missing second device is a coverage gap, not a passing paired proof.
+
+At teardown, cancel or finish active rides, sign out both account sessions, stop only the two owned Revyl devices, and delete the private pair file. Removing that file does not revoke its database sessions. Do not publish passwords, account session tokens, gate tokens, or raw launch payloads in logs or evidence.
 
 ## Verification commands
 
