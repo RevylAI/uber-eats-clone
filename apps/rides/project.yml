@@ -42,6 +42,10 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources: [Tests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.revyl.ridesdemo.tests
     dependencies:
       - target: RidesDemo
 schemes:
