@@ -19,7 +19,7 @@ revyl build --profile rides --platform ios
 
 Revyl manages the published configuration from `main`; a configuration PR must merge before it changes that published version. Local explicit builds use the checked-out recipe. The automatic PR review profile and its Proof of Changes instructions still target **Eats**. Adding a second build profile does not establish automatic rides or two-phone proof coverage.
 
-On a Mac, `cd apps/rides && bash scripts/build-ios.sh` runs the core tests in Debug and Release and builds the iOS app and test bundle. `bash scripts/verify-ios.sh` additionally executes XCTest on an installed iPhone simulator. The cloud compilation runner may have no simulator runtime; that is not an iOS test pass. The `Rides demo` GitHub workflow runs server tests and the simulator verification separately.
+On a Mac, `cd apps/rides && bash scripts/build-ios.sh` runs the core tests in Debug and Release and builds the iOS app and test bundle. Simulator builds are ad-hoc signed with a simulator-specific Keychain identity; an unsigned simulator app cannot save the shared session. `bash scripts/verify-ios.sh` additionally executes XCTest, including a real Keychain round trip, on an installed iPhone simulator. The cloud build recipe compiles but does not execute iOS XCTest. The `Rides demo` GitHub workflow runs server tests and the simulator verification separately, on pull requests and pushes to `main`.
 
 ## Shared service
 

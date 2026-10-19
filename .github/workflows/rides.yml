@@ -1,6 +1,7 @@
 name: Rides demo
 on:
   push:
+    branches: [main]
     paths: ['apps/rides/**', 'services/ride-demo/**', '.github/workflows/rides.yml']
   pull_request:
     paths: ['apps/rides/**', 'services/ride-demo/**', '.github/workflows/rides.yml']

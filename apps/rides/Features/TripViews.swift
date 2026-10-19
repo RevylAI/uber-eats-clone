@@ -26,6 +26,7 @@ struct TripTrackingView: View {
                                 }
                                 if trip.status == .cancelled {
                                     Text(trip.cancellationReason ?? "Plans changed. No fee was charged.").font(.subheadline).foregroundStyle(.secondary)
+                                    Text("No cancellation fee. No payment was collected.").font(.subheadline).foregroundStyle(.secondary)
                                     RidePrimaryButton(title: "Back to Home") { store.focusedTripID = nil }
                                 }
                                 if let driver = trip.driver {
@@ -48,14 +49,16 @@ struct TripTrackingView: View {
                                         }.foregroundStyle(.black)
                                     }
                                 }
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text(trip.status == .inProgress ? "Enjoy the ride" : "Meet at your pickup spot").font(.headline)
-                                    Text(trip.status == .inProgress ? trip.destination.name : trip.pickup.name).font(.subheadline)
-                                    Text(trip.status == .inProgress ? "Your demo driver will complete the ride from the other phone." : "Your demo driver will mark arrival and start the trip from the other phone.").font(.caption).foregroundStyle(.secondary)
-                                }.padding(16).frame(maxWidth: .infinity, alignment: .leading).overlay { RoundedRectangle(cornerRadius: 12).stroke(.gray.opacity(0.22)) }
+                                if trip.status.isActive {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text(trip.status == .inProgress ? "Enjoy the ride" : "Meet at your pickup spot").font(.headline)
+                                        Text(trip.status == .inProgress ? trip.destination.name : trip.pickup.name).font(.subheadline)
+                                        Text(trip.status == .inProgress ? "Your demo driver will complete the ride from the other phone." : "Your demo driver will mark arrival and start the trip from the other phone.").font(.caption).foregroundStyle(.secondary)
+                                    }.padding(16).frame(maxWidth: .infinity, alignment: .leading).overlay { RoundedRectangle(cornerRadius: 12).stroke(.gray.opacity(0.22)) }
+                                }
                                 RideRouteSummary(pickup: trip.pickup, destination: trip.destination, stops: trip.stops)
-                                HStack { Text(trip.serviceTitle); Spacer(); Text(RideCatalog.money(trip.fareCents)).fontWeight(.semibold) }.font(.subheadline)
-                                if store.rideReminders, let date = trip.scheduledAt { Label("Reservation: \(RideCatalog.date(date))", systemImage: "calendar").font(.caption) }
+                                HStack { Text(trip.serviceTitle); Spacer(); Text(RideCatalog.money(trip.status == .cancelled ? 0 : trip.fareCents)).fontWeight(.semibold) }.font(.subheadline)
+                                if trip.status.isActive, store.rideReminders, let date = trip.scheduledAt { Label("Reservation: \(RideCatalog.date(date))", systemImage: "calendar").font(.caption) }
                                 if !trip.note.isEmpty { Label(trip.note, systemImage: "text.bubble").font(.caption) }
                                 if trip.status.canCancel { Button("Cancel ride", role: .destructive) { showCancel = true }.font(.subheadline.bold()).frame(maxWidth: .infinity).padding(.vertical, 10).disabled(store.busy) }
                                 Text("Simulated map and travel times · No live GPS or real driver").font(.system(size: 10)).foregroundStyle(.secondary)
