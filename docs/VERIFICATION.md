@@ -1,5 +1,38 @@
 # Verification
 
+## 2026-10-18: Repository-bound Revyl CLI verification
+
+The published `pull-request` profile built successfully through the authenticated Revyl CLI as job `cfcf8d4a-3205-46da-aa10-b4ed8955629c`, uploading version `fd1f7840-b904-43ac-bc43-066a7aaa639d` to the configured Uber Eats Clone iOS app. This independently verifies the actual repository-bound recipe, rather than only a separate Capy build.
+
+Cloud-device testing exposed an app-plist collision: Xcode replaced `build/Info.plist` with Derived Data metadata, removing the custom URL scheme. The generated application plist now lives at `.generated/EatsClone-Info.plist`, and the build checks the final packaged plist for `eatsclone` before uploading.
+
+The final app was exercised on a Revyl cloud iPhone:
+
+- A fresh session executed session preparation, opened the tokenized link, skipped onboarding, and displayed `Revyl sign-in accepted · Local buyer` on Home.
+- A wrong-token link requesting Account was rejected, leaving Home visible.
+- Refreshing the link with the original hidden boot token but role `admin` was visibly rejected.
+- Refreshing with the original hidden token but redirect `/admin` was visibly rejected.
+- Replacing the app in a running raw session dropped its launch gate; the app visibly rejected the next link as disabled. A fresh prepared session restored successful sign-in.
+- The final accepted and rejected status banners were visually inspected and checked against the accessibility hierarchy to confirm that neither overlaps the address header.
+- After automatic sign-in, one Regular Super Burger was added to the cart and Home was reopened. The cart button and all four tabs were visually separate; switching to Account with the nonempty cart succeeded.
+
+[Accepted sign-in screenshot](https://api-staging.capy.ai/pr-assets/yKV4MObZr7r_eQ0UVQ4_nvIZnYiv9fgc98zSm9qYf3c.png) · [Rejected sign-in screenshot](https://api-staging.capy.ai/pr-assets/I__fdkI4M79oaGDpqbra9bpOkIZAIYAk_YUUE0xo1oQ.png)
+
+[Signed-in cart and tab navigation screenshot](https://api-staging.capy.ai/pr-assets/RwJAsVX2dHu8LbhPOLW2nWXEYtKS0t43nqsmk7tdfvM.png)
+
+The final recipe also passed its 20 Debug core tests and compiled the iOS app/test bundle. Release core regression coverage is recorded below. An actual automatic PR Proof of Changes run remains unverified; these manual device checks are not a substitute for its PR report.
+
+## 2026-10-18: Revyl configuration and test-only sign-in
+
+Build `01M58JB7XGCMM26PCN6CWQ4QA7` succeeded after correcting the build recipe to invoke the non-executable script with `bash`.
+
+- All 20 core tests passed in both Debug and Release on the cloud macOS runner, including 10 new sign-in bypass regression tests.
+- The Debug iOS app and iOS test bundle compiled successfully; iOS XCTest execution is not established by this build.
+- Revyl connected configuration validation succeeded. The repository-root configuration was published, and `revyl github status --json` reported repository access granted and project status enabled.
+- Session-preparation checks confirmed independent, sufficiently long random tokens and the expected protocol keys without retaining or displaying token values.
+
+These build-time checks alone do not establish on-device behavior or an automatic PR proof. The later cloud-iPhone follow-up is recorded above; an automatic PR proof still requires an actual PR report.
+
 ## 2026-10-18: Revyl cloud build
 
 Builds `01M58EBQX8M1CCVWEJ3FAV2BJC` and `01M58EY9CZ4T32J1XPGR1R07R9` succeeded on Revyl's macOS runner using `bash scripts/build-ios.sh`. The latter includes the device-discovered cart-navigation correction.

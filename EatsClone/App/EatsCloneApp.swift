@@ -6,6 +6,9 @@ struct EatsCloneApp: App {
     var body: some Scene {
         WindowGroup {
             RootView().environmentObject(store).tint(.black).preferredColorScheme(.light)
+                #if DEBUG
+                .onOpenURL { store.handleRevylAuthBypass($0) }
+                #endif
         }
     }
 }
@@ -21,6 +24,7 @@ struct RootView: View {
             CartNavigation { OrdersView() }.tabItem { Label("Orders", systemImage: "receipt") }.tag(2)
             CartNavigation { AccountView() }.tabItem { Label("Account", systemImage: "person.crop.circle") }.tag(3)
         }
+        .onChange(of: store.navigationResetID) { showTracking = false }
         .sheet(isPresented: $store.showCart, onDismiss: {
             if store.activeOrderID != nil { showTracking = true }
         }) { NavigationStack { CartView() }.environmentObject(store) }
@@ -30,8 +34,29 @@ struct RootView: View {
             }
         }
         .fullScreenCover(isPresented: Binding(get: { !store.snapshot.onboarded }, set: { if !$0 { store.snapshot.onboarded = true } })) {
-            WelcomeView().environmentObject(store)
+            VStack(spacing: 0) {
+                RevylSessionBanner()
+                WelcomeView()
+            }.environmentObject(store)
         }
+    }
+}
+
+private struct RevylSessionBanner: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        #if DEBUG
+        if let message = store.revylSessionMessage {
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.black)
+                .padding(10)
+                .frame(maxWidth: .infinity)
+                .background(Color.yellow.opacity(0.2))
+                .accessibilityIdentifier("revyl-session-status")
+        }
+        #endif
     }
 }
 
@@ -39,20 +64,24 @@ struct CartNavigation<Content: View>: View {
     @EnvironmentObject private var store: AppStore
     @ViewBuilder var content: () -> Content
     var body: some View {
-        NavigationStack { content() }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !store.cart.isEmpty {
-                    Button { store.showCart = true } label: {
-                        HStack {
-                            Text("\(store.cartCount)").font(.subheadline.bold()).padding(7).background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
-                            Spacer()
-                            Text("View cart").font(.headline)
-                            Spacer()
-                            Text(store.subtotal.money).font(.subheadline.bold())
-                        }.foregroundStyle(.white).padding(12).background(.black, in: RoundedRectangle(cornerRadius: 12))
-                    }.padding(.horizontal, 16).padding(.vertical, 6).background(.white)
+        VStack(spacing: 0) {
+            RevylSessionBanner()
+            NavigationStack { content() }
+                .id(store.navigationResetID)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if !store.cart.isEmpty {
+                        Button { store.showCart = true } label: {
+                            HStack {
+                                Text("\(store.cartCount)").font(.subheadline.bold()).padding(7).background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 6))
+                                Spacer()
+                                Text("View cart").font(.headline)
+                                Spacer()
+                                Text(store.subtotal.money).font(.subheadline.bold())
+                            }.foregroundStyle(.white).padding(12).background(.black, in: RoundedRectangle(cornerRadius: 12))
+                        }.padding(.horizontal, 16).padding(.vertical, 6).background(.white)
+                    }
                 }
-            }
+        }
     }
 }
 

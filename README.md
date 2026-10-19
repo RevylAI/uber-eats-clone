@@ -22,7 +22,7 @@ xcodebuild \
 
 The build command compiles for the simulator; it does not launch the app. Open `EatsClone.xcodeproj`, select the `EatsClone` scheme and an available iOS simulator, then choose Run. `project.yml` is the XcodeGen project definition. No API keys, backend server, or account are needed for the demo.
 
-The Revyl cloud build and 10 store tests passed on 2026-10-18. See [verification evidence and its limits](docs/VERIFICATION.md); compilation alone does not establish UI or full feature parity.
+The Revyl cloud build and 20 core tests passed on 2026-10-18. Test-only sign-in was also exercised on a cloud iPhone. See [verification evidence and its limits](docs/VERIFICATION.md); these checks do not establish full feature parity or a completed automatic PR proof.
 
 `bash scripts/build-ios.sh` runs the store tests on macOS using Swift Package Manager and compiles the iOS app and test bundle without requiring a booted simulator. `bash scripts/verify-ios.sh` also runs the iOS test bundle on an installed iPhone simulator; GitHub Actions uses that command.
 
@@ -33,6 +33,10 @@ The backend substitute is an in-process Swift store. It encodes its snapshot as 
 Restaurant data, prices, fees, delivery estimates, payment labels, promotions, and order progress are illustrative. Checkout creates a local order only: no real authentication, payment processing, map or geocoding service, restaurant submission, courier dispatch, or delivery takes place. Do not enter real payment details or sensitive personal information. Photos are bundled in the asset catalog, with no runtime image downloads.
 
 For a fresh local demo, pass `--reset-demo` in the scheme's Run arguments or reinstall the app. Resetting removes the local demo snapshot; it does not affect any external account.
+
+## Revyl pull-request verification
+
+The repository includes a published Revyl project configuration for automatic iOS preview builds and Proof of Changes. Its `pull-request` profile runs `scripts/build-ios.sh`; no GitHub Actions API key is required for Revyl-managed builds. See [Revyl setup and test-only sign-in](docs/REVYL.md) for session preparation, security boundaries, and verification commands. Configuration being enabled is not evidence that an individual proof passed; check that pull request's Revyl report.
 
 ## License and media
 

@@ -19,6 +19,12 @@ targets:
   EatsClone:
     type: application
     platform: iOS
+    info:
+      path: .generated/EatsClone-Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.cognisim.eatsclone.revyl
+            CFBundleURLSchemes: [eatsclone]
     sources:
       - path: EatsClone
         excludes:
