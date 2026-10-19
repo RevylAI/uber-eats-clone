@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 enum RideStyle {
     static let soft = Color(red: 0.95, green: 0.95, blue: 0.95)
@@ -17,7 +18,7 @@ struct RidePrimaryButton: View {
                 if busy { ProgressView().tint(.white) }
                 Text(title).font(.system(size: 17, weight: .semibold))
                 Spacer()
-            }.padding(.vertical, 17).background(disabled ? Color.gray : Color.black).foregroundStyle(.white).clipShape(RoundedRectangle(cornerRadius: 10))
+            }.padding(.vertical, 17).background(disabled ? RideStyle.soft : Color.black).foregroundStyle(disabled ? Color.secondary : Color.white).clipShape(RoundedRectangle(cornerRadius: 12))
         }.disabled(disabled || busy)
     }
 }
@@ -40,60 +41,52 @@ struct RideCarArt: View {
 struct DemoMapView: View {
     var route = true
     var status: TripStatus = .requested
+    var pickup: DemoPlace = RideCatalog.places[0]
+    var destination: DemoPlace = RideCatalog.places[1]
+    var stops: [DemoPlace] = []
+
+    private var routePlaces: [DemoPlace] { [pickup] + stops + [destination] }
+
+    private var cameraRect: MKMapRect {
+        let points = routePlaces.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
+        let bounds = points.reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 1, height: 1))) }
+        let width = max(bounds.width * 1.5, 12_000)
+        let height = max(bounds.height * 1.6, 12_000)
+        return MKMapRect(x: bounds.midX - width / 2, y: bounds.midY - height / 2, width: width, height: height)
+    }
+
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Canvas { context, size in
-                    context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(red: 0.91, green: 0.93, blue: 0.95)))
-                    var park = Path()
-                    park.move(to: CGPoint(x: size.width * 0.79, y: 0))
-                    park.addCurve(to: CGPoint(x: size.width * 0.18, y: size.height), control1: CGPoint(x: size.width * 0.96, y: size.height * 0.45), control2: CGPoint(x: size.width * 0.14, y: size.height * 0.56))
-                    park.addLine(to: CGPoint(x: size.width * 0.43, y: size.height))
-                    park.addCurve(to: CGPoint(x: size.width * 0.94, y: 0), control1: CGPoint(x: size.width * 0.51, y: size.height * 0.64), control2: CGPoint(x: size.width * 1.08, y: size.height * 0.34))
-                    park.closeSubpath()
-                    context.fill(park, with: .color(Color(red: 0.70, green: 0.83, blue: 0.72)))
-                    for index in 0..<11 {
-                        let x = CGFloat(index) * size.width / 8 - size.width * 0.1
-                        var street = Path()
-                        street.move(to: CGPoint(x: x, y: -20))
-                        street.addLine(to: CGPoint(x: x - size.width * 0.24, y: size.height + 20))
-                        context.stroke(street, with: .color(.white), lineWidth: index % 3 == 0 ? 8 : 4)
-                    }
-                    for index in 0..<10 {
-                        let y = CGFloat(index) * size.height / 7
-                        var street = Path()
-                        street.move(to: CGPoint(x: -10, y: y))
-                        street.addLine(to: CGPoint(x: size.width + 10, y: y + size.height * 0.12))
-                        context.stroke(street, with: .color(.white), lineWidth: index % 3 == 0 ? 8 : 4)
-                    }
-                    var river = Path()
-                    river.move(to: CGPoint(x: -10, y: size.height * 0.71))
-                    river.addCurve(to: CGPoint(x: size.width + 10, y: size.height * 0.95), control1: CGPoint(x: size.width * 0.48, y: size.height * 0.48), control2: CGPoint(x: size.width * 0.57, y: size.height * 1.08))
-                    context.stroke(river, with: .color(Color(red: 0.63, green: 0.80, blue: 0.89)), style: StrokeStyle(lineWidth: 20, lineCap: .round))
-                    if route {
-                        var line = Path()
-                        line.move(to: CGPoint(x: size.width * 0.25, y: size.height * 0.27))
-                        line.addLine(to: CGPoint(x: size.width * 0.57, y: size.height * 0.31))
-                        line.addLine(to: CGPoint(x: size.width * 0.49, y: size.height * 0.60))
-                        line.addLine(to: CGPoint(x: size.width * 0.77, y: size.height * 0.64))
-                        context.stroke(line, with: .color(.white), style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
-                        context.stroke(line, with: .color(.black), style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
+        Map(initialPosition: route ? .rect(cameraRect) : .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: pickup.latitude, longitude: pickup.longitude), span: MKCoordinateSpan(latitudeDelta: 0.035, longitudeDelta: 0.035))), interactionModes: []) {
+            if route {
+                MapPolyline(coordinates: routePlaces.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) })
+                    .stroke(.black, style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [6, 5]))
+                Annotation("Pickup", coordinate: CLLocationCoordinate2D(latitude: pickup.latitude, longitude: pickup.longitude)) {
+                    Image(systemName: "circle.inset.filled").font(.system(size: 20)).foregroundStyle(.black)
+                        .padding(6).background(.white).clipShape(Circle()).shadow(color: .black.opacity(0.12), radius: 3)
+                }
+                ForEach(stops) { stop in
+                    Annotation(stop.name, coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude)) {
+                        Image(systemName: "circle").font(.system(size: 15, weight: .bold)).foregroundStyle(.black)
+                            .padding(5).background(.white).clipShape(Circle())
                     }
                 }
-                Text("DOWNTOWN").font(.system(size: 10, weight: .medium)).tracking(2).foregroundStyle(.gray).position(x: geometry.size.width * 0.40, y: geometry.size.height * 0.16)
-                Text("Congress Ave").font(.system(size: 9)).foregroundStyle(.gray).rotationEffect(.degrees(-73)).position(x: geometry.size.width * 0.32, y: geometry.size.height * 0.49)
-                Text("Lady Bird Lake").font(.system(size: 10)).foregroundStyle(Color(red: 0.31, green: 0.49, blue: 0.63)).rotationEffect(.degrees(12)).position(x: geometry.size.width * 0.60, y: geometry.size.height * 0.87)
-                if route {
-                    Image(systemName: "circle.inset.filled").font(.system(size: 17)).position(x: geometry.size.width * 0.25, y: geometry.size.height * 0.27)
-                    Image(systemName: "square.fill").font(.system(size: 14)).position(x: geometry.size.width * 0.77, y: geometry.size.height * 0.64)
-                    Text("Pickup spot").font(.system(size: 12, weight: .medium)).padding(7).background(.white).shadow(color: .black.opacity(0.1), radius: 4).position(x: geometry.size.width * 0.27, y: geometry.size.height * 0.37)
+                Annotation("Dropoff", coordinate: CLLocationCoordinate2D(latitude: destination.latitude, longitude: destination.longitude)) {
+                    Image(systemName: "square.fill").font(.system(size: 14)).foregroundStyle(.white)
+                        .padding(8).background(.black).clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                Image(systemName: "car.top.door.front.left.and.front.right.closed.fill")
-                    .font(.system(size: 28)).foregroundStyle(.black)
-                    .rotationEffect(.degrees(status == .inProgress ? 100 : 20))
-                    .position(x: geometry.size.width * (status == .arriving ? 0.30 : status == .inProgress ? 0.64 : 0.52), y: geometry.size.height * (status == .arriving ? 0.30 : 0.60))
             }
-        }.clipped().accessibilityElement(children: .ignore).accessibilityLabel(route ? "Austin route" : "Austin map")
+        }
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .id(route ? routePlaces.map(\.id).joined(separator: "-") : pickup.id)
+        .overlay(alignment: .topTrailing) {
+            if route {
+                Text("Route preview").font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(.white).clipShape(Capsule()).padding(12)
+            }
+        }
+        .clipped().accessibilityElement(children: .contain)
+        .accessibilityLabel(route ? "\(status.title). Route preview from \(pickup.name) to \(destination.name). Straight-line connections, not driving directions or live vehicle tracking." : "Map of Austin. Live vehicle tracking is unavailable.")
     }
 }
 
