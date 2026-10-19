@@ -24,6 +24,7 @@ pr_review:
     paths:
       - apps/rides/**
       - services/ride-demo/**
+      - services/ride-convex/**
       - docs/RIDES.md
       - docs/RIDES_VERIFICATION.md
       - .github/workflows/rides.yml
@@ -40,8 +41,9 @@ pr_review:
     always_verify:
       - "Scope this proof to the Rides application selected by this project's rides profile. Verify all applicable Rides changes and the checks below, and report any observed Rides defect. Eats has its own root project, build, session, and proof at .revyl/config.yaml. Do not require Eats ordering screens inside the Rides binary; they belong to the separate Eats proof, not an unmet Rides verification requirement."
       - A fresh Rides session opens Home with the Revyl sign-in accepted Rider banner, without opening Eats or asking for real authentication.
-      - Open Where to, select an offline destination, choose a vehicle and payment label, and reach Confirm your pickup. Without a configured demo server, Connect to request a ride opens Demo connection rather than inventing a driver, trip, or charge. Do not enter real payment information.
-      - Dismiss the connection and booking sheets, then verify Home, Services, Activity, and Account remain reachable. Open saved places and wallet from Account using only demo data.
-      - Two-phone dispatch, chat, completion, and cancellation require a shared reachable HTTPS service and a second phone. Do not report those behaviors as passed from this single-phone proof.
+      - The hosted Convex backend is prefilled in Demo connection. Create a new private Rider room, then Continue as Rider. Keep invitations hidden and never include invitation codes, session tokens, or credentials in public evidence.
+      - Open Where to, select an offline destination, choose a vehicle and demo payment label, and confirm pickup. Verify the hosted request reaches Finding your ride; without a second online driver it must not invent an acceptance or charge. Cancel the requested trip and verify a zero-charge Cancelled history entry. Do not enter real payment information.
+      - Home, Services, Activity, and Account remain reachable after the cancellation. Open saved places and wallet from Account using only demo data.
+      - Driver acceptance, two-way chat, arrival, start, completion, receipts, rating, and tips require a second Rides phone joined to the same private room. Do not report those paired behaviors as passed from this single-phone proof.
   strict_ci_check:
     build: true

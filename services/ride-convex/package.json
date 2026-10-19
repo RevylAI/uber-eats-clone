@@ -1,0 +1,20 @@
+{
+  "name": "ride-convex",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "env -u CONVEX_OVERRIDE_ACCESS_TOKEN -u CONVEX_DEPLOY_KEY -u CONVEX_DEPLOYMENT -u CONVEX_URL convex codegen --system-udfs --typecheck disable",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "convex": "1.47.0"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "5.0.0",
+    "convex-test": "0.0.54",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}

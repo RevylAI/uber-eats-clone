@@ -9,6 +9,11 @@ struct RideAPIError: LocalizedError, Equatable {
     var errorDescription: String? { message }
 }
 
+enum RideSyncEvent {
+    case state(RideRoomState)
+    case connection(Bool)
+}
+
 protocol RideAPI {
     var baseURL: URL { get }
     func create(name: String) async throws -> RideSession
@@ -17,6 +22,39 @@ protocol RideAPI {
     func availability(token: String, online: Bool) async throws -> RideRoomState
     func book(token: String, request: TripRequest) async throws -> RideRoomState
     func act(token: String, tripID: String, action: RideAction) async throws -> RideRoomState
+    func updates(token: String) -> AsyncThrowingStream<RideSyncEvent, Error>
+}
+
+extension RideAPI {
+    func updates(token: String) -> AsyncThrowingStream<RideSyncEvent, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    while !Task.isCancelled {
+                        let incoming = try await state(token: token)
+                        continuation.yield(.connection(true))
+                        continuation.yield(.state(incoming))
+                        try await Task.sleep(for: .seconds(1))
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+}
+
+enum RideBackend {
+    static var defaultAddress: String {
+        Bundle.main.object(forInfoDictionaryKey: "ConvexDeploymentURL") as? String ?? ""
+    }
+
+    static func client(for url: URL) -> any RideAPI {
+        if url.host?.hasSuffix(".convex.cloud") == true { return ConvexRideAPIClient(baseURL: url) }
+        return RideAPIClient(baseURL: url)
+    }
 }
 
 struct RideAPIClient: RideAPI {

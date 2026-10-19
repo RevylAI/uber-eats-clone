@@ -40,6 +40,7 @@ final class RideStore: ObservableObject {
     @Published private(set) var credentials: StoredRideSession?
     @Published private(set) var state: RideRoomState?
     @Published private(set) var lastSync: Date?
+    @Published private(set) var syncConnected = false
     @Published private(set) var busy = false
     @Published var errorMessage: String?
     @Published var notice: String?
@@ -67,7 +68,7 @@ final class RideStore: ObservableObject {
     private let apiFactory: (URL) -> any RideAPI
     private var api: (any RideAPI)?
 
-    init(defaults: UserDefaults = .standard, vault: any RideSessionVault = KeychainRideSessionVault(), apiFactory: @escaping (URL) -> any RideAPI = { RideAPIClient(baseURL: $0) }) {
+    init(defaults: UserDefaults = .standard, vault: any RideSessionVault = KeychainRideSessionVault(), apiFactory: @escaping (URL) -> any RideAPI = { RideBackend.client(for: $0) }) {
         self.defaults = defaults
         self.vault = vault
         self.apiFactory = apiFactory
@@ -75,7 +76,7 @@ final class RideStore: ObservableObject {
         credentials = restored
         role = restored?.role ?? .rider
         displayName = restored?.name ?? DemoRole.rider.defaultName
-        serverAddress = restored?.baseURL.absoluteString ?? RevylRideSignIn.launchValue("RIDE_DEMO_BASE_URL") ?? defaults.string(forKey: "serverAddress") ?? ""
+        serverAddress = restored?.baseURL.absoluteString ?? RevylRideSignIn.launchValue("RIDE_DEMO_BASE_URL") ?? defaults.string(forKey: "serverAddress") ?? RideBackend.defaultAddress
         savedPlaces = defaults.data(forKey: "savedPlaces").flatMap { try? JSONDecoder().decode([DemoPlace].self, from: $0) } ?? [RideCatalog.places[2], RideCatalog.places[3]]
         rideReminders = defaults.object(forKey: "rideReminders") as? Bool ?? true
         defaultPayment = defaults.string(forKey: "defaultPayment").flatMap(DemoPayment.init(rawValue:)) ?? .visa
@@ -91,7 +92,7 @@ final class RideStore: ObservableObject {
     var earningsCents: Int {
         (state?.trips ?? []).filter { $0.status == .completed && $0.driver?.id == credentials?.participantId }.reduce(0) { $0 + $1.totalCents }
     }
-    var syncIsFresh: Bool { lastSync.map { Date().timeIntervalSince($0) < 5 } ?? false }
+    var syncIsFresh: Bool { syncConnected }
 
     func chooseRole(_ value: DemoRole) {
         guard !connected else { return }
@@ -133,14 +134,30 @@ final class RideStore: ObservableObject {
         api = nil
         state = nil
         lastSync = nil
+        syncConnected = false
         focusedTripID = nil
         roomInput = ""
         vault.clear()
     }
 
-    func runPolling() async {
-        while !Task.isCancelled {
-            if connected { await sync() }
+    func runUpdates() async {
+        guard let credentials, let api else { return }
+        defer { if self.credentials?.token == credentials.token { syncConnected = false } }
+        while !Task.isCancelled, self.credentials?.token == credentials.token {
+            var connectionLive = false
+            do {
+                for try await event in api.updates(token: credentials.token) {
+                    guard !Task.isCancelled, self.credentials?.token == credentials.token else { return }
+                    switch event {
+                    case .state(let state): apply(state, for: credentials, live: connectionLive)
+                    case .connection(let live):
+                        connectionLive = live
+                        syncConnected = live && state != nil
+                        if live && errorMessage?.hasPrefix("Connection lost.") == true { errorMessage = nil }
+                    }
+                }
+            } catch { handleSyncError(error, for: credentials) }
+            guard self.credentials?.token == credentials.token else { return }
             do { try await Task.sleep(for: .seconds(1)) } catch { return }
         }
     }
@@ -152,26 +169,33 @@ final class RideStore: ObservableObject {
             guard !Task.isCancelled else { return }
             apply(state, for: credentials)
         } catch {
-            guard !Task.isCancelled, self.credentials?.token == credentials.token else { return }
-            if let error = error as? RideAPIError, [401, 404].contains(error.status) {
-                self.credentials = nil
-                self.api = nil
-                state = nil
-                lastSync = nil
-                vault.clear()
-                showConnection = true
-                errorMessage = "This demo session has expired. Create or join a room again."
-            } else {
-                errorMessage = "Connection lost. Check the demo server and tap Retry."
-            }
+            handleSyncError(error, for: credentials)
         }
     }
 
-    private func apply(_ incoming: RideRoomState, for credentials: StoredRideSession) {
+    private func handleSyncError(_ error: Error, for credentials: StoredRideSession) {
+        guard !Task.isCancelled, self.credentials?.token == credentials.token else { return }
+        syncConnected = false
+        if let error = error as? RideAPIError, [401, 404].contains(error.status) {
+            self.credentials = nil
+            api = nil
+            state = nil
+            lastSync = nil
+            vault.clear()
+            showConnection = true
+            errorMessage = "This demo session has expired. Create or join a room again."
+        } else {
+            errorMessage = "Connection lost. Check your internet connection and tap Retry."
+        }
+    }
+
+    private func apply(_ incoming: RideRoomState, for credentials: StoredRideSession, live: Bool = true) {
         guard self.credentials?.token == credentials.token, incoming.roomCode == credentials.roomCode else { return }
         guard state == nil || incoming.revision >= state!.revision else { return }
         state = incoming
+        if credentials.role == .rider, let active = incoming.activeTrip { focusedTripID = active.id }
         lastSync = Date()
+        syncConnected = live
         if errorMessage?.hasPrefix("Connection lost.") == true { errorMessage = nil }
     }
 
@@ -186,6 +210,10 @@ final class RideStore: ObservableObject {
             errorMessage = nil
             return true
         } catch {
+            if (error as? RideAPIError)?.status == 401 {
+                handleSyncError(error, for: credentials)
+                return false
+            }
             if (error as? RideAPIError)?.status == 409 { await sync() }
             errorMessage = error.localizedDescription
             return false

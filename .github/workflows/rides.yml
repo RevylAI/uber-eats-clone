@@ -2,10 +2,19 @@ name: Rides demo
 on:
   push:
     branches: [main]
-    paths: ['apps/rides/**', 'services/ride-demo/**', '.github/workflows/rides.yml']
+    paths: ['apps/rides/**', 'services/ride-demo/**', 'services/ride-convex/**', '.github/workflows/rides.yml']
   pull_request:
-    paths: ['apps/rides/**', 'services/ride-demo/**', '.github/workflows/rides.yml']
+    paths: ['apps/rides/**', 'services/ride-demo/**', 'services/ride-convex/**', '.github/workflows/rides.yml']
 jobs:
+  convex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci && npm run typecheck && npm test
+        working-directory: services/ride-convex
   server:
     runs-on: ubuntu-latest
     steps:
