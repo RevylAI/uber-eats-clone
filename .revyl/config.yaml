@@ -21,6 +21,15 @@ build:
 pr_review:
   enabled: true
   review_triggers:
+    paths:
+      - EatsClone/**
+      - Resources/**
+      - scripts/**
+      - project.yml
+      - Package.swift
+      - .revyl/**
+      - .github/workflows/ios.yml
+      - .github/workflows/revyl.yml
     drafts: false
   build:
     kind: revyl
@@ -30,6 +39,7 @@ pr_review:
     harness:
       kind: revyl
     always_verify:
+      - "Scope this proof to the Eats application selected by this project's pull-request profile. Verify all applicable Eats changes and the regression checks below, and report any observed Eats defect. Rides has its own project root, build, session, and proof at apps/rides/.revyl/config.yaml. Do not require Rides screens, its driver role, or its service inside the Eats binary; those belong to the separate Rides proof, not an unmet Eats verification requirement."
       - The fresh session bypasses onboarding and shows the Home tab with the Revyl sign-in accepted banner.
       - Add a meal, customize it, open the cart, and place a demo order without real authentication, network services, or payment.
       - The Home, Browse, Orders, and Account tabs remain reachable when the cart contains items.

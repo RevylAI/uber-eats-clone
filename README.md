@@ -1,5 +1,7 @@
 # EatsClone
 
+This repository also contains a separate native **Rides** app in [`apps/rides`](apps/rides) and its shared demo service in [`services/ride-demo`](services/ride-demo). Eats remains unchanged. See the [rider/driver two-phone demo guide](docs/RIDES.md) for builds, pairing, references, and limitations.
+
 An independent, self-contained food delivery demo built with native SwiftUI for iOS 17 and later. Its interaction design is inspired by the Uber Eats references on Mobbin. This project is not affiliated with, endorsed by, or connected to Uber, Uber Eats, Mobbin, Unsplash, or any restaurant shown in its sample catalog.
 
 The initial release focuses on a local restaurant-ordering journey: onboarding, discovery, menus, item customization, cart, demo checkout, simulated order progress, and saved account data. This is not yet a complete reproduction of Uber Eats. See [scope and limitations](docs/PARITY.md), the [parity roadmap](docs/ROADMAP.md), and [design references](docs/REFERENCES.md).
@@ -36,7 +38,14 @@ For a fresh local demo, pass `--reset-demo` in the scheme's Run arguments or rei
 
 ## Revyl pull-request verification
 
-The repository includes a published Revyl project configuration for automatic iOS preview builds and Proof of Changes. Its `pull-request` profile runs `scripts/build-ios.sh`; no GitHub Actions API key is required for Revyl-managed builds. See [Revyl setup and test-only sign-in](docs/REVYL.md) for session preparation, security boundaries, and verification commands. Configuration being enabled is not evidence that an individual proof passed; check that pull request's Revyl report.
+The repository includes separate Revyl project configurations for Eats at `.revyl/config.yaml` and Rides at `apps/rides/.revyl/config.yaml`. Each has its own iOS app, session setup, path triggers, preview build, and Proof of Changes policy. No GitHub Actions API key is required for Revyl-managed builds.
+
+```sh
+revyl build --profile pull-request --platform ios
+revyl -C apps/rides build --profile rides --platform ios
+```
+
+See [Revyl setup and test-only sign-in](docs/REVYL.md) for session preparation, security boundaries, and verification commands. Configuration being enabled is not evidence that an individual proof passed; check that pull request's Revyl report. Rides single-phone proof does not replace paired-phone verification against a reachable shared service.
 
 ## License and media
 
