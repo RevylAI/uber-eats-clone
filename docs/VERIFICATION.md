@@ -14,8 +14,11 @@ The final app was exercised on a Revyl cloud iPhone:
 - Refreshing with the original hidden token but redirect `/admin` was visibly rejected.
 - Replacing the app in a running raw session dropped its launch gate; the app visibly rejected the next link as disabled. A fresh prepared session restored successful sign-in.
 - The final accepted and rejected status banners were visually inspected and checked against the accessibility hierarchy to confirm that neither overlaps the address header.
+- After automatic sign-in, one Regular Super Burger was added to the cart and Home was reopened. The cart button and all four tabs were visually separate; switching to Account with the nonempty cart succeeded.
 
 [Accepted sign-in screenshot](https://api-staging.capy.ai/pr-assets/yKV4MObZr7r_eQ0UVQ4_nvIZnYiv9fgc98zSm9qYf3c.png) · [Rejected sign-in screenshot](https://api-staging.capy.ai/pr-assets/I__fdkI4M79oaGDpqbra9bpOkIZAIYAk_YUUE0xo1oQ.png)
+
+[Signed-in cart and tab navigation screenshot](https://api-staging.capy.ai/pr-assets/RwJAsVX2dHu8LbhPOLW2nWXEYtKS0t43nqsmk7tdfvM.png)
 
 The final recipe also passed its 20 Debug core tests and compiled the iOS app/test bundle. Release core regression coverage is recorded below. An actual automatic PR Proof of Changes run remains unverified; these manual device checks are not a substitute for its PR report.
 
