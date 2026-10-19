@@ -44,7 +44,8 @@ struct BookingFlowView: View {
                                 Image(systemName: "arrow.left").font(.system(size: 20, weight: .medium))
                                     .frame(width: 44, height: 44).background(.white).clipShape(Circle())
                             }.padding(16).accessibilityLabel(step == 1 ? "Edit route" : "Back to ride options")
-                        }.frame(height: focusedField == .note ? 76 : max(150, min(geometry.size.height * (step == 1 ? 0.27 : 0.34), 290)))
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: focusedField == .note ? 76 : max(150, min(geometry.size.height * (step == 1 ? 0.27 : 0.34), 290)))
                         VStack(spacing: 0) {
                             Capsule().fill(Color.black.opacity(0.1)).frame(width: 36, height: 4).padding(.top, 9).padding(.bottom, 14).accessibilityHidden(true)
                             if step == 1 { chooseRideView }
