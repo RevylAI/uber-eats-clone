@@ -5,6 +5,7 @@ struct DemoConnectionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var joinExisting = false
     @State private var copied = false
+    @State private var showInvitation = false
     @State private var confirmLeave = false
     var body: some View {
         NavigationStack {
@@ -21,7 +22,10 @@ struct DemoConnectionView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("\(session.name) · \(session.role.title)", systemImage: session.role == .rider ? "person.fill" : "car.fill").font(.headline)
                             Text("Invitation code").font(.caption).foregroundStyle(.secondary)
-                            Text(session.roomCode).font(.system(size: 30, weight: .bold, design: .monospaced)).tracking(3).textSelection(.enabled)
+                            if showInvitation {
+                                Text(session.roomCode).font(.system(size: 24, weight: .bold, design: .monospaced)).textSelection(.enabled).privacySensitive()
+                            }
+                            Button(showInvitation ? "Hide invitation" : "Show private invitation") { showInvitation.toggle() }.font(.subheadline.bold())
                             Text(session.baseURL.absoluteString).font(.caption).textSelection(.enabled)
                             Button(copied ? "Copied invitation" : "Copy invitation") {
                                 UIPasteboard.general.string = "Rides demo\nServer: \(session.baseURL.absoluteString)\nRoom: \(session.roomCode)\nChoose Driver to join. Keep this invitation private."
@@ -43,9 +47,12 @@ struct DemoConnectionView: View {
                             }
                         }
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Demo server").font(.subheadline.bold())
-                            TextField("https://your-demo-server", text: $store.serverAddress).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled().padding(14).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 9)).accessibilityIdentifier("demo.server")
-                            Text("The server must be reachable by both phones. No public server is bundled.").font(.caption).foregroundStyle(.secondary)
+                            Text("Shared backend").font(.subheadline.bold())
+                            TextField("https://your-deployment.convex.cloud", text: $store.serverAddress).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled().padding(14).background(RideStyle.soft).clipShape(RoundedRectangle(cornerRadius: 9)).accessibilityIdentifier("demo.server")
+                            Text("The hosted Convex backend is prefilled. Use the same address on both phones.").font(.caption).foregroundStyle(.secondary)
+                            if !RideBackend.defaultAddress.isEmpty && store.serverAddress != RideBackend.defaultAddress {
+                                Button("Use hosted Convex backend") { store.serverAddress = RideBackend.defaultAddress }.font(.caption.bold())
+                            }
                         }
                         VStack(alignment: .leading, spacing: 7) {
                             Text("Your demo name").font(.subheadline.bold())
@@ -73,7 +80,7 @@ struct DemoConnectionView: View {
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() }.disabled(store.busy) } }
                 .confirmationDialog("Leave this demo?", isPresented: $confirmLeave, titleVisibility: .visible) {
                     Button("Leave demo", role: .destructive) { store.disconnect() }
-                } message: { Text("The room and its trip history stay on the server until the room expires. Keep the invitation to rejoin as the rider.") }
+                } message: { Text("Room access expires 24 hours after creation. Keep the invitation private to rejoin before then. Expiry does not delete retained history.") }
         }.tint(.black)
     }
 }

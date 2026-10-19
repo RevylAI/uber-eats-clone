@@ -22,13 +22,17 @@ The root project remains Eats-only; run Rides CLI commands with `-C apps/rides` 
 
 The Rides project was published in manual authority so automation can run before the config reaches `main`. Once Revyl reconciles its designated config from `main`, Git becomes authoritative. The existing root project is already Git-managed; its updated published aggregate follows `main`, while PR candidate configuration is validated at the exact PR head. Do not use a force-push of server configuration to bypass Git authority.
 
-Both proof policies explicitly scope device verification to their own app rather than expecting the other binary's screens. Rides automatic proof exercises independent Rider sign-in, offline booking through pickup confirmation, the connection-required boundary, tabs, saved places, and wallet. It deliberately does not claim to verify a two-phone trip without a reachable shared service and a second phone. Paired dispatch, chat, completion, and cancellation were verified separately on native phones. This setup does not deploy a permanent backend or establish full Uber parity.
+Both proof policies explicitly scope device verification to their own app rather than expecting the other binary's screens. Rides automatic proof exercises independent Rider sign-in, creation of a private room on the prefilled hosted backend, a real demo request and zero-charge cancellation, tabs, saved places, and wallet. Invitations must stay hidden in public evidence. The single-phone policy does not claim to verify driver acceptance, two-way chat, or completion without a second phone, and neither policy establishes full Uber parity.
 
-On a Mac, `cd apps/rides && bash scripts/build-ios.sh` runs the core tests in Debug and Release and builds the iOS app and test bundle. Simulator builds are ad-hoc signed with a simulator-specific Keychain identity; an unsigned simulator app cannot save the shared session. `bash scripts/verify-ios.sh` additionally executes XCTest, including a real Keychain round trip, on an installed iPhone simulator. The cloud build recipe compiles but does not execute iOS XCTest. The `Rides demo` GitHub workflow runs server tests and the simulator verification separately, on pull requests and pushes to `main`.
+On an Apple Silicon Mac, `cd apps/rides && bash scripts/build-ios.sh` runs the core tests in Debug and Release and builds the iOS app and test bundle. ConvexMobile 0.8.1 supplies arm64 iOS, simulator, and macOS binaries, not Intel binaries. Simulator builds are ad-hoc signed with a simulator-specific Keychain identity; an unsigned simulator app cannot save the shared session. `bash scripts/verify-ios.sh` additionally executes XCTest, including a real Keychain round trip, on an installed iPhone simulator. The cloud build recipe compiles but does not execute iOS XCTest. The `Rides demo` GitHub workflow runs Convex typechecking/tests, legacy server tests, and simulator verification separately, on pull requests and pushes to `main`. CI tests do not deploy or require a Convex admin credential.
 
 ## Shared service
 
-Two phones cannot synchronize through per-device stubs. `services/ride-demo` is a dependency-free Node 24 HTTP service with SQLite/WAL persistence. It stores isolated invitation rooms, per-participant bearer credentials (hashed server-side), demo requests, acceptance, transitions, messages, and ratings. It never dispatches a real car or processes a payment. See its [API and hosting documentation](../services/ride-demo/README.md).
+The default shared backend is the existing **uber-clone** project in the **landseer-enga** Convex team, at `https://harmless-mammoth-742.convex.cloud`. This public deployment URL is bundled in the Rides app; no account token or deployment key is bundled. The source and deployment instructions are in [`services/ride-convex`](../services/ride-convex/README.md). No workspace process is needed to keep this hosted service running.
+
+The Swift app uses pinned ConvexMobile 0.8.1 mutations and a live `rides:state` subscription. The backend stores isolated invitation rooms, SHA-256 credential hashes, demo requests, atomic acceptance and transitions, messages, and ratings in Convex tables. A private invitation can grant rider or driver access to that room; it is a demo capability, not verified production identity. Rooms expire after 24 hours, but expiry does not delete retained database documents. Rooms allow 20 lifetime trips, 32 participants, 128 credentials, and 100 messages per trip; create a fresh room when full. There is no real car dispatch or payment settlement.
+
+The original dependency-free Node 24 HTTP/SQLite service remains available for optional local or self-hosted development:
 
 ```sh
 cd services/ride-demo
@@ -36,26 +40,26 @@ npm test
 npm start
 ```
 
-For persistent demos, run its Docker image behind HTTPS and mount `/data` on durable storage. Both phones need the same reachable HTTPS origin. A temporary workspace preview is useful for verification but is not permanent hosting: the workspace can sleep, the process can stop, and phones then show a connection error. No transient backend address or invitation is hardcoded in the app.
+For that legacy service, run its Docker image behind HTTPS and mount `/data` on durable storage. Enter the same HTTPS origin on both phones; non-Convex origins use the existing HTTP transport. Temporary workspace previews can stop and are not permanent hosting. Use **Use hosted Convex backend** to reset a custom address to the bundled hosted default. Invitations and credentials are never hardcoded.
 
 ## Pair two phones
 
-1. Install the same Rides build on both iPhones. On the rider, tap **Connect two-phone demo** or **Account → Rider & driver demo**. Choose **Rider**, enter the service's HTTPS address and a sample name, and tap **Create rider room**.
-2. Keep the invitation private. On the second phone, choose **Driver**, enter the same service address and the rider's room code, and tap **Join as Driver**. Tap **GO** to become available.
+1. Install the same Rides build on both iPhones. On the rider, tap **Connect two-phone demo** or **Account → Rider & driver demo**. Choose **Rider**, keep the prefilled Convex address, enter a sample name, and tap **Create rider room**.
+2. Keep the invitation private; **Copy invitation** shares the address and code, while **Show private invitation** reveals it only when requested. On the second phone, choose **Driver**, use the same backend address and the rider's room code, and tap **Join as Driver**. Tap **GO** to become available.
 3. On the rider, tap **Where to?**, select an offline demo destination, choose a service and payment label, then confirm pickup. The request must appear on the driver phone; nothing accepts it automatically.
 4. Tap **Accept ride** on the driver. The rider must change to the assigned driver, vehicle, and plate. Use **Message driver/rider** to send messages between the phones.
-5. The driver taps **I've arrived**, **Start**, and **Complete ride**. The rider observes each server-committed state after the next poll. The rider can submit a rating and demo tip; receipts and the driver's demo earnings update from shared state.
+5. The driver taps **I've arrived**, **Start**, and **Complete ride**. The rider observes each server-committed state through the live subscription. The rider can submit a rating and demo tip; receipts and the driver's demo earnings update from shared state.
 6. For a separate cancellation case, rebook and cancel before the trip starts. Both phones must reflect cancellation. No fee is charged. A ride cannot be cancelled after starting; the assigned driver completes it.
 
-Each room permits one active trip. Competing online drivers cannot both accept it. The client polls once per second while foregrounded and discards older room revisions. Network failures do not locally fake acceptance or advance a trip. Credentials are kept in Keychain; bookmarks, the default payment label, and in-app reminder preferences stay in UserDefaults. Driver identity persists with its saved session; a new driver join creates a different participant.
+Each room permits one active trip. Competing online drivers cannot both accept it. Foreground Convex subscriptions reconnect through the SDK; backgrounding cancels observation until the app becomes active again. The optional legacy transport still polls once per second. Both discard older room revisions. Network failures do not locally fake acceptance or advance a trip. Credentials are kept in Keychain; bookmarks, the default payment label, and in-app reminder preferences stay in UserDefaults. Driver identity persists with its saved session; a new driver join creates a different participant.
 
 ## Isolated Revyl sign-in
 
 Each project owns its session hook. The root hook mints an Eats buyer token; `apps/rides/scripts/prepare-revyl-session.py` mints a fresh Rides token. Rides preview sessions without a checkout use the separate `RIDES_AUTH_BYPASS_ENABLED` and encrypted `RIDES_AUTH_BYPASS_TOKEN` organization launch references. They never replace the Eats variables. The automatic Rides proof defaults to Rider. The explicit launcher selects either Rider or Driver from the nested project:
 
 ```sh
-python3 apps/rides/scripts/start-session.py --role rider --server https://your-demo-server.example
-python3 apps/rides/scripts/start-session.py --role driver --server https://your-demo-server.example
+python3 apps/rides/scripts/start-session.py --role rider
+python3 apps/rides/scripts/start-session.py --role driver
 ```
 
 Pass `--build-version-id` to pin a build. Pass the rider's invitation with `--room` to join automatically. The launcher mints an independent token per phone, supplies it at app boot, and uses `ridesdemo://revyl-auth` with the requested allowlisted role. It captures raw CLI output and prints only safe session metadata, never the token or deep link. The fixed fresh-session names are Alex Morgan (rider) and Jordan Lee (driver). The bypass selects a demo role; it is not production authentication or a fixed global backend account. The handler is Debug-only, explicitly enabled and token-gated, with role, route, and parameter allowlists. Session creation can queue if the Revyl workspace has no capacity.

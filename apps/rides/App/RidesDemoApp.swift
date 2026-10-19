@@ -47,8 +47,8 @@ struct RideRootView: View {
         }
         .sheet(isPresented: $store.showConnection) { DemoConnectionView().environmentObject(store) }
         .fullScreenCover(isPresented: $store.showBooking) { BookingFlowView().environmentObject(store) }
-        .task(id: scenePhase) {
-            if scenePhase == .active { await store.runPolling() }
+        .task(id: scenePhase == .active ? store.credentials?.token : nil) {
+            if scenePhase == .active { await store.runUpdates() }
         }
     }
 }
