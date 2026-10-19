@@ -41,8 +41,8 @@ export const signUp = internalAction({
     const password = passwordValue(input.password);
     const role = input.role;
     if (role !== "rider" && role !== "driver") fail(400, "Invalid role");
-    const vehicle = input.vehicle === undefined ? null : text(input.vehicle, 100, "vehicle");
-    const plate = input.plate === undefined ? null : text(input.plate, 20, "plate");
+    const vehicle = input.vehicle == null ? null : text(input.vehicle, 100, "vehicle");
+    const plate = input.plate == null ? null : text(input.plate, 20, "plate");
     if (role === "driver" && (!vehicle || !plate)) fail(400, "Driver vehicle and plate are required");
     const serviceArea = input.serviceArea === undefined ? "austin" : text(input.serviceArea, 80, "serviceArea").toLowerCase();
     if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(serviceArea)) fail(400, "Invalid serviceArea");

@@ -15,6 +15,6 @@ export type AccountSession = {
 };
 export type SignUp = {
   name: string; email: string; password: string; role: string;
-  vehicle?: string; plate?: string; serviceArea?: string;
+  vehicle?: string | null; plate?: string | null; serviceArea?: string;
 };
 export type SignIn = { email: string; password: string };

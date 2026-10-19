@@ -30,6 +30,7 @@ link = "ridesdemo://revyl-auth?" + urlencode({"token": token, "role": args.role,
 command = [
     "revyl", "device", "start", "--platform", "ios",
     "--app-id", app_id,
+    "--no-inherited-launch-vars",
     "--launch-env", "RIDES_AUTH_BYPASS_ENABLED=true",
     "--launch-env", "RIDES_AUTH_BYPASS_TOKEN=" + token,
     "--launch-env", "RIDES_ACCOUNT_SESSION=" + session["token"],

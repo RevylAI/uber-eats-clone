@@ -114,6 +114,7 @@ class RevylConfigTests(unittest.TestCase):
             self.assertEqual(json.loads(request.call_args.args[0].data)["args"]["role"], role)
             self.assertEqual(run.call_args.kwargs["cwd"], ROOT / "apps/rides")
             command = run.call_args.args[0]
+            self.assertIn("--no-inherited-launch-vars", command)
             link = command[command.index("--app-link") + 1]
             self.assertTrue(urlparse(link).scheme == "ridesdemo")
             self.assertTrue(parse_qs(urlparse(link).query)["role"] == [role])
