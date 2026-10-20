@@ -9,4 +9,5 @@ DerivedData
 .revyl/before-session-values.json
 .revyl/dev-sessions.json
 .revyl/device-session.json
+.revyl/device-sessions.json
 .revyl/device-history.json
