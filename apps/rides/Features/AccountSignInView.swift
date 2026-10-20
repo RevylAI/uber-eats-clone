@@ -12,6 +12,7 @@ struct AccountSignInView: View {
     @State private var showPassword = false
     @State private var submitted = false
     @State private var touched: Set<RideAccountField> = []
+    @State private var passwordFocused = false
     @FocusState private var focusedField: RideAccountField?
 
     private var errors: [RideAccountField: String] {
@@ -37,7 +38,7 @@ struct AccountSignInView: View {
                                     TextField("Your full name", text: $name)
                                         .textContentType(.name).textInputAutocapitalization(.words)
                                         .focused($focusedField, equals: .name).submitLabel(.next)
-                                        .onSubmit { focusedField = .email }
+                                        .onSubmit { focus(.email) }
                                         .accessibilityIdentifier("auth.name")
                                 }
                             }
@@ -46,22 +47,19 @@ struct AccountSignInView: View {
                                     .keyboardType(.emailAddress).textContentType(creating ? .emailAddress : .username)
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                                     .focused($focusedField, equals: .email).submitLabel(.next)
-                                    .onSubmit { focusedField = .password }
+                                    .onSubmit { focus(.password) }
                                     .accessibilityIdentifier("auth.email")
                             }
                             field("Password", id: .password) {
                                 HStack(spacing: 12) {
-                                    RidePasswordField(text: $password, focused: Binding(get: { focusedField == .password }, set: { value in
-                                        if value { focusedField = .password }
-                                        else if focusedField == .password { focusedField = nil }
-                                    }), secure: !showPassword, creating: creating, returnKey: creating && role == .driver ? .next : .go) {
-                                        if creating && role == .driver { focusedField = .vehicle }
+                                    RidePasswordField(text: $password, focused: $passwordFocused, secure: !showPassword, creating: creating, returnKey: creating && role == .driver ? .next : .go) {
+                                        if creating && role == .driver { focus(.vehicle) }
                                         else { submit() }
                                     }.frame(height: 32)
                                     .accessibilityIdentifier("auth.password")
                                     Button {
                                         showPassword.toggle()
-                                        focusedField = .password
+                                        focus(.password)
                                     } label: {
                                         Image(systemName: showPassword ? "eye.slash" : "eye")
                                             .font(.system(size: 18)).foregroundStyle(.secondary)
@@ -85,7 +83,7 @@ struct AccountSignInView: View {
                                     field("Vehicle", id: .vehicle) {
                                         TextField("Make, model and color", text: $vehicle)
                                             .focused($focusedField, equals: .vehicle).submitLabel(.next)
-                                            .onSubmit { focusedField = .plate }
+                                            .onSubmit { focus(.plate) }
                                             .accessibilityIdentifier("auth.vehicle")
                                     }
                                     field("License plate", id: .plate) {
@@ -113,8 +111,14 @@ struct AccountSignInView: View {
                     .frame(maxWidth: 520).frame(maxWidth: .infinity, alignment: .top)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: focusedField) { previous, _ in
+                .onChange(of: focusedField) { previous, current in
                     if let previous { touched.insert(previous) }
+                    if current != nil { passwordFocused = false }
+                    revealFocusedField(in: scroll)
+                }
+                .onChange(of: passwordFocused) { previous, current in
+                    if previous { touched.insert(.password) }
+                    if current { focusedField = nil }
                     revealFocusedField(in: scroll)
                 }
                 .onChange(of: geometry.size.height) { _, _ in revealFocusedField(in: scroll) }
@@ -133,7 +137,7 @@ struct AccountSignInView: View {
                     submitted = false
                     touched = []
                     store.errorMessage = nil
-                    focusedField = creating ? .name : .email
+                    focus(creating ? .name : .email)
                 } label: {
                     HStack(spacing: 0) {
                         Text(creating ? "Already have an account? " : "New to Rides? ").foregroundStyle(.secondary)
@@ -172,18 +176,24 @@ struct AccountSignInView: View {
     }
 
     private func revealFocusedField(in scroll: ScrollViewProxy) {
-        guard let focusedField else { return }
-        withAnimation { scroll.scrollTo(focusedField, anchor: .center) }
+        let target: RideAccountField? = passwordFocused ? .password : focusedField
+        guard let target else { return }
+        withAnimation { scroll.scrollTo(target, anchor: .center) }
+    }
+
+    private func focus(_ field: RideAccountField?) {
+        passwordFocused = field == .password
+        focusedField = field == .password ? nil : field
     }
 
     private func submit() {
         guard !store.busy else { return }
         submitted = true
         if let invalid = [RideAccountField.name, .email, .password, .vehicle, .plate].first(where: { errors[$0] != nil }) {
-            focusedField = invalid
+            focus(invalid)
             return
         }
-        focusedField = nil
+        focus(nil)
         Task {
             let registration = creating ? RideRegistration(name: name, email: email, password: password, role: role, vehicle: role == .driver ? vehicle : nil, plate: role == .driver ? plate : nil) : nil
             if await store.signIn(email: email, password: password, registration: registration) { password = "" }
