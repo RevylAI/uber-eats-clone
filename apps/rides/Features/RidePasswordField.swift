@@ -34,7 +34,12 @@ struct RidePasswordField: UIViewRepresentable {
             let start = field.selectedTextRange.map { field.offset(from: field.beginningOfDocument, to: $0.start) }
             let end = field.selectedTextRange.map { field.offset(from: field.beginningOfDocument, to: $0.end) }
             field.isSecureTextEntry = secure
-            field.text = text
+            if field.isFirstResponder {
+                field.text = ""
+                field.insertText(text)
+            } else {
+                field.text = text
+            }
             if let start, let end,
                let beginning = field.position(from: field.beginningOfDocument, offset: start),
                let ending = field.position(from: field.beginningOfDocument, offset: end) {
@@ -58,7 +63,10 @@ struct RidePasswordField: UIViewRepresentable {
 
         init(_ parent: RidePasswordField) { self.parent = parent }
 
-        @objc func changed(_ field: UITextField) { parent.text = field.text ?? "" }
+        @objc func changed(_ field: UITextField) {
+            let value = field.text ?? ""
+            if parent.text != value { parent.text = value }
+        }
 
         func textFieldDidBeginEditing(_ textField: UITextField) {
             if !parent.focused { parent.focused = true }
