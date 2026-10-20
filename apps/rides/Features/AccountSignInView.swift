@@ -116,9 +116,8 @@ struct AccountSignInView: View {
                     if current != nil { passwordFocused = false }
                     revealFocusedField(in: scroll)
                 }
-                .onChange(of: passwordFocused) { previous, current in
+                .onChange(of: passwordFocused) { previous, _ in
                     if previous { touched.insert(.password) }
-                    if current { focusedField = nil }
                     revealFocusedField(in: scroll)
                 }
                 .onChange(of: geometry.size.height) { _, _ in revealFocusedField(in: scroll) }
@@ -183,7 +182,7 @@ struct AccountSignInView: View {
 
     private func focus(_ field: RideAccountField?) {
         passwordFocused = field == .password
-        focusedField = field == .password ? nil : field
+        if field != .password { focusedField = field }
     }
 
     private func submit() {
