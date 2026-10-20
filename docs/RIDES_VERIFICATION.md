@@ -2,6 +2,18 @@
 
 No real ride, charge, call, or location tracking is performed.
 
+## Screen refresh and keyboard audit — October 19, 2026
+
+The refresh in [PR #6](https://github.com/RevylAI/uber-eats-clone/pull/6) was exercised on separate rider and driver Revyl iPhone 17 Pro Max simulators reporting iOS 27.0, using distinct registered database users in one isolated service area. The full paired flow belongs specifically to commit `dfcf0294fa3d19d9eee1420faf2e50915a26378a`, Rides build `1277f0f5-0132-41ad-9c1e-e694143c69b2`; it is not a current-head proof.
+
+Native actions covered request, acceptance, bidirectional chat, arrival, start, completion with confirmations, five stars, and a $3 tip preference. Both clients agreed on the original $18.40 fare and $21.40 recorded total. Rebooking preserved the route/service; Keep ride retained the accepted state, then confirmed cancellation before start produced zero-charge histories on both phones without changing the original completed trip. Separate read-only backend snapshots corroborated the UI; backend mutations were not used in place of native lifecycle actions. The three-line unsent driver chat draft and Send remained above the keyboard, and the draft was cleared without sending.
+
+The audit found a clipped pickup-note editor. Commit `f029b10a38730d141758b8e2411ad71bd4f6007f` independently passed pickup/destination search, the full three-line note and counter above the software keyboard, and Done restoring the map/footer with the note intact. The final left-aligned booking-header change at `5ee087502acec96c89224a30edf6d3b1a9a4e8e9` was then checked on build `e05d94cc-1b67-4277-a073-dd4503217540`. These were targeted input checks, not a repeat of the paired lifecycle.
+
+Password visibility exposed a separate defect: the earlier focus-only implementation kept the keyboard open but replaced existing characters on subsequent typing. A persistent native text-field repair at `bad58cbe72b211cf9037140317ad09b6d583256e` compiled as build `ea6ecd3b-08c8-4c3b-98e0-382adf90ded4`; exact append-after-toggle and cursor checks are still pending. Keyboard visibility alone is not a passing password-preservation test.
+
+The paired accounts were signed out through the UI and their original sessions rejected by `accounts:resume`; the driver was offline and no active trip remained. Only the two owned devices were stopped, both reports settled as completed, and the private account file was deleted after revocation. The CLI did not confirm hardware release, so release is not claimed. Public-safe screenshots and build-specific context belong in the feature PR description; raw account/session data remains private.
+
 ## Account-backed follow-up — October 19, 2026
 
 The current follow-up replaces the invitation UI with database-backed registration, sign-in, persisted profiles, and sign-out. It removes customer-facing demo language, pairing controls, fixed profile ratings and wallet balances, and visible Revyl banners. New account dispatch is separate from the legacy room API described below, which remains compatible for older clients.
