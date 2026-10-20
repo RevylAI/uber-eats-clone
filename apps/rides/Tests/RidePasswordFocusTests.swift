@@ -37,7 +37,7 @@ final class RidePasswordFocusTests: XCTestCase {
 
     private func passwordField(in view: UIView) -> UITextField? {
         if let field = view as? UITextField, field.accessibilityIdentifier == "auth.password" { return field }
-        return view.subviews.lazy.compactMap { passwordField(in: $0) }.first
+        return view.subviews.lazy.compactMap { self.passwordField(in: $0) }.first
     }
 }
 
