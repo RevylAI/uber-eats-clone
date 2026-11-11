@@ -72,12 +72,22 @@ struct HomeView: View {
         query.isEmpty && cuisine == .all && !offersOnly && !quickOnly && !favoritesOnly
     }
 
+    private var eatsPassFreeDelivery: Bool? {
+        let offer = EatsPassOffer.resolve(environment: ProcessInfo.processInfo.environment, arguments: ProcessInfo.processInfo.arguments)
+        guard case let .visible(freeDelivery) = offer else { return nil }
+        return freeDelivery
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     addressHeader
                         .padding(.horizontal, 20)
+                    if let freeDelivery = eatsPassFreeDelivery {
+                        EatsPassCard(freeDelivery: freeDelivery)
+                            .padding(.horizontal, 20)
+                    }
                     DiscoveryModePicker()
                         .padding(.horizontal, 20)
                     DiscoverySearchField(text: $query, prompt: "Search food and restaurants")
@@ -924,3 +934,28 @@ private struct DiscoveryEmptyState: View {
         .padding(.horizontal, 18)
     }
 }
+
+struct EatsPassCard: View {
+    let freeDelivery: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.title2)
+                .foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Eats Pass member")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Text(freeDelivery ? "$0 delivery fee on every order" : "Member pricing on eligible orders")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(EatsTheme.green, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityIdentifier("eats-pass-card")
+    }
+}
+
