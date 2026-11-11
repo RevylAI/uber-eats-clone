@@ -32,7 +32,7 @@ enum RevylAuthBypass {
         return .accepted(tab: tab)
     }
 
-    private static func launchValue(_ name: String, environment: [String: String], arguments: [String]) -> String? {
+    static func launchValue(_ name: String, environment: [String: String], arguments: [String]) -> String? {
         if let value = environment[name] { return value }
         guard let index = arguments.firstIndex(of: "-" + name), arguments.indices.contains(index + 1) else { return nil }
         return arguments[index + 1]
