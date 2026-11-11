@@ -39,13 +39,14 @@ pr_review:
     harness:
       kind: revyl
     system_prompt: |-
-      This repository chooses its own test state. scripts/revyl-test-state.py is the test-state provider: it lists the settable client flags, backend flags and user states, and creates a test user in the state you pick. Before you start any device:
-      1. Run `python3 scripts/revyl-test-state.py describe` and read every flag and state it lists.
+      This repository chooses its own test state, and the sign-in token never passes through you. Before you start any device:
+      1. Run `python3 scripts/revyl-test-state.py describe` and read every user state, backend flag and client flag it lists. Ignore its finalize command.
       2. From the diff and the pull request description, pick the user state, backend flags and client flags that make the changed behaviour visible. Say which you picked and why in one sentence.
-      3. Run `python3 scripts/revyl-test-state.py finalize --state <state> --flag <backend_flag>=<value>` with one --flag per backend flag you set. It prints JSON with `app_link` and `launch_env`.
-      4. Start the device on the preview build Revyl names below with `revyl device start --platform ios --build-version-id <build id> --app-link '<app_link>' --launch-env '<entry>'`, repeating --launch-env for every `launch_env` entry and for each client flag as NAME=value, and add --json. This replaces the repository's default sign-in for this session.
-      The app link and launch_env carry a short-lived session token. Never quote them, the token, or the finalize output in your write-up, annotations or comment; name only the state and flags you chose.
-      To show a second state, for example that the change stays hidden for other users, stop the first device, run finalize again and start a new device.
+      3. Start the device on the preview build Revyl names below, putting your choice in STATE_REQUEST on the same command line:
+         STATE_REQUEST='{"state": "<user_state>", "backend_flags": {"<name>": "<value>"}, "client_flags": {"<NAME>": "<value>"}}' revyl device start --platform ios --build-version-id <build id> --json
+         Do not pass --app-link or --launch-env. The repository's session.before_script reads STATE_REQUEST, creates the test user, and the configured deep link signs it in.
+      4. Right after each start, print which user was created with `tail -n 1 .revyl/state-provider-audit.log | python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); print(d["user_id"], d["state"], d["backend_flags"], d["client_flags"])'`. Never print the rest of that file.
+      Prove the change in at least two states: one where it should appear and one where it should stay hidden. For each extra state, stop the device first, then start a new one with a new STATE_REQUEST, and confirm step 4 shows a different user_id.
     always_verify:
       - "Scope this proof to the Eats application selected by this project's pull-request profile. Verify all applicable Eats changes and the regression checks below, and report any observed Eats defect. Rides has its own project root, build, session, and proof at apps/rides/.revyl/config.yaml. Do not require Rides screens, its driver role, or its service inside the Eats binary; those belong to the separate Rides proof, not an unmet Eats verification requirement."
       - The fresh session bypasses onboarding and shows the Home tab with the Revyl sign-in accepted banner.
